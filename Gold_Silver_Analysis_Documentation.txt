@@ -1,0 +1,34 @@
+Gold and Silver Correlation Analysis - Feature Documentation
+
+1. Overview
+The Gold and Silver Correlation Analysis is a full-stack machine learning feature designed to predict the future prices of Gold (GLD) and Silver (SLV) over a 10-year horizon, analyze their historical correlation, and provide deep mathematical transparency into how the prediction model makes its decisions.
+
+2. Data Sourcing and Preparation (Backend)
+- Data Source: The backend (Django/Python) fetches historical price data from the Yahoo Finance API (yfinance). It specifically pulls data for the 'GLD' (SPDR Gold Shares) and 'SLV' (iShares Silver Trust) ETFs to represent real-world asset prices.
+- Aggregation: The daily price data is resampled into strictly 'Yearly' data, taking the final closing price of each year to create a smooth, long-term macroeconomic trendline.
+
+3. Machine Learning Model & Feature Engineering
+Instead of just using the 'Year' to predict prices, the model uses a multivariate approach to understand market momentum. 
+The system trains two independent Scikit-Learn `LinearRegression` models (one for Gold, one for Silver) using 6 specific features:
+    1. Year: The chronological year.
+    2. GLD_Lag_1: The price of Gold exactly 1 year prior.
+    3. SLV_Lag_1: The price of Silver exactly 1 year prior.
+    4. GLD_Lag_2: The price of Gold exactly 2 years prior.
+    5. SLV_Lag_2: The price of Silver exactly 2 years prior.
+    6. Gold_Silver_Ratio_Lag_1: The mathematical ratio between Gold and Silver prices from 1 year prior (a classic precious metals trading indicator).
+
+4. Walk-Forward Prediction (10-Year Forecast)
+Because 5 of the 6 features rely on knowing the "previous year's price", the model cannot predict the year 2035 immediately. 
+Instead, it uses a "Walk-Forward" prediction loop. It predicts the price for next year, and then feeds that newly predicted price backward into the model as the 'Lag_1' feature to predict the year after that. It iterates this process 10 times to generate a realistic 10-year forecast curve.
+
+5. AI Explainability (SHAP and LIME)
+To ensure the prediction isn't a "black box", the backend implements two enterprise-grade explainability frameworks:
+- SHAP (SHapley Additive exPlanations): This evaluates the model globally. It calculates the average absolute impact (in dollars) that each of the 6 features has on the model's predictions across all years. This tells the user which features are the most "important" overall.
+- LIME (Local Interpretable Model-agnostic Explanations): This evaluates the model locally. It zooms in on a single specific prediction (e.g., the target year 2026) and breaks down exactly how much money each individual feature mathematically added or subtracted to reach that final predicted price.
+
+6. Frontend Visualization (React)
+The backend bundles the historical data, the 10-year predictions, and the SHAP/LIME explanations into a unified JSON payload (`gold_silver_data.json`) and serves it via a Django REST API endpoint.
+The React frontend (`GoldSilverAnalysis.jsx`) consumes this API and generates several interactive charts using Recharts:
+- Line Charts: Displays historical vs predicted trends for Gold and Silver independently.
+- Scatter Plot: Shows the historical correlation mapping Silver against Gold, alongside the projected 10-year trend trajectory.
+- Horizontal Bar Charts: Renders the SHAP global feature importances and the LIME local decision boundaries, color-coding positive (green) and negative (red) momentum contributions.

@@ -1,0 +1,194 @@
+{
+  "info": {
+    "name": "Stock Market Prediction API",
+    "_postman_id": "a1b2c3d4-e5f6-7890-stock-market",
+    "description": "Postman Collection for Django Stock Market Prediction Backend",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Auth - Register",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"username\": \"sahil\",\n    \"password\": \"1234\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/api/accounts/register/",
+          "host": ["{{base_url}}"],
+          "path": ["api", "accounts", "register", ""]
+        }
+      }
+    },
+    {
+      "name": "Auth - Login",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"username\": \"sahil\",\n    \"password\": \"1234\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/api/accounts/login/",
+          "host": ["{{base_url}}"],
+          "path": ["api", "accounts", "login", ""]
+        }
+      }
+    },
+    {
+      "name": "Auth - Get Current User",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/accounts/me/",
+          "host": ["{{base_url}}"],
+          "path": ["api", "accounts", "me", ""]
+        }
+      }
+    },
+    {
+      "name": "Portfolio - Create",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"name\": \"IT Sector\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/api/portfolios/",
+          "host": ["{{base_url}}"],
+          "path": ["api", "portfolios", ""]
+        }
+      }
+    },
+    {
+      "name": "Portfolio - List",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/portfolios/",
+          "host": ["{{base_url}}"],
+          "path": ["api", "portfolios", ""]
+        }
+      }
+    },
+    {
+      "name": "Stock - Add",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"portfolio\": 1,\n    \"ticker\": \"AAPL\",\n    \"company_name\": \"Apple Inc\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/api/stocks/",
+          "host": ["{{base_url}}"],
+          "path": ["api", "stocks", ""]
+        }
+      }
+    },
+    {
+      "name": "Stock - List",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/stocks/",
+          "host": ["{{base_url}}"],
+          "path": ["api", "stocks", ""]
+        }
+      }
+    },
+    {
+      "name": "Analysis - Price Chart",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/analysis/price-chart/?ticker=AAPL",
+          "host": ["{{base_url}}"],
+          "path": ["api", "analysis", "price-chart", ""],
+          "query": [
+            {
+              "key": "ticker",
+              "value": "AAPL"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://127.0.0.1:8000"
+    },
+    {
+      "key": "access_token",
+      "value": ""
+    }
+  ]
+}

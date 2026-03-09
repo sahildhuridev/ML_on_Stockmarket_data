@@ -1,0 +1,234 @@
+{
+    "historical": [
+        {
+            "Year": 2008,
+            "Actual_GLD": 86.52,
+            "Actual_SLV": 11.2
+        },
+        {
+            "Year": 2009,
+            "Actual_GLD": 107.31,
+            "Actual_SLV": 16.54
+        },
+        {
+            "Year": 2010,
+            "Actual_GLD": 138.72,
+            "Actual_SLV": 30.18
+        },
+        {
+            "Year": 2011,
+            "Actual_GLD": 151.99,
+            "Actual_SLV": 26.94
+        },
+        {
+            "Year": 2012,
+            "Actual_GLD": 162.02,
+            "Actual_SLV": 29.37
+        },
+        {
+            "Year": 2013,
+            "Actual_GLD": 116.12,
+            "Actual_SLV": 18.71
+        },
+        {
+            "Year": 2014,
+            "Actual_GLD": 113.58,
+            "Actual_SLV": 15.06
+        },
+        {
+            "Year": 2015,
+            "Actual_GLD": 101.46,
+            "Actual_SLV": 13.19
+        },
+        {
+            "Year": 2016,
+            "Actual_GLD": 109.61,
+            "Actual_SLV": 15.11
+        },
+        {
+            "Year": 2017,
+            "Actual_GLD": 123.65,
+            "Actual_SLV": 15.99
+        },
+        {
+            "Year": 2018,
+            "Actual_GLD": 121.25,
+            "Actual_SLV": 14.52
+        },
+        {
+            "Year": 2019,
+            "Actual_GLD": 142.9,
+            "Actual_SLV": 16.68
+        },
+        {
+            "Year": 2020,
+            "Actual_GLD": 178.36,
+            "Actual_SLV": 24.57
+        },
+        {
+            "Year": 2021,
+            "Actual_GLD": 170.96,
+            "Actual_SLV": 21.51
+        },
+        {
+            "Year": 2022,
+            "Actual_GLD": 169.64,
+            "Actual_SLV": 22.02
+        },
+        {
+            "Year": 2023,
+            "Actual_GLD": 191.17,
+            "Actual_SLV": 21.78
+        },
+        {
+            "Year": 2024,
+            "Actual_GLD": 242.13,
+            "Actual_SLV": 26.33
+        },
+        {
+            "Year": 2025,
+            "Actual_GLD": 396.31,
+            "Actual_SLV": 64.42
+        },
+        {
+            "Year": 2026,
+            "Actual_GLD": 471.8,
+            "Actual_SLV": 75.34
+        }
+    ],
+    "predictions": [
+        {
+            "Year": 2027,
+            "Predicted_GLD": 549.44,
+            "Predicted_SLV": 91.12
+        },
+        {
+            "Year": 2028,
+            "Predicted_GLD": 624.23,
+            "Predicted_SLV": 106.86
+        },
+        {
+            "Year": 2029,
+            "Predicted_GLD": 678.13,
+            "Predicted_SLV": 117.06
+        },
+        {
+            "Year": 2030,
+            "Predicted_GLD": 720.29,
+            "Predicted_SLV": 125.02
+        },
+        {
+            "Year": 2031,
+            "Predicted_GLD": 755.96,
+            "Predicted_SLV": 131.8
+        },
+        {
+            "Year": 2032,
+            "Predicted_GLD": 785.51,
+            "Predicted_SLV": 137.1
+        },
+        {
+            "Year": 2033,
+            "Predicted_GLD": 811.65,
+            "Predicted_SLV": 141.62
+        },
+        {
+            "Year": 2034,
+            "Predicted_GLD": 836.99,
+            "Predicted_SLV": 145.95
+        },
+        {
+            "Year": 2035,
+            "Predicted_GLD": 862.77,
+            "Predicted_SLV": 150.33
+        },
+        {
+            "Year": 2036,
+            "Predicted_GLD": 889.83,
+            "Predicted_SLV": 154.93
+        }
+    ],
+    "explanations": {
+        "shap": {
+            "features": [
+                "Year",
+                "GLD_Lag_1",
+                "SLV_Lag_1",
+                "GLD_Lag_2",
+                "SLV_Lag_2",
+                "Gold_Silver_Ratio_Lag_1"
+            ],
+            "gld_importance": [
+                31.924384988219877,
+                151.9992282788184,
+                77.77757321016404,
+                8.745314046533178,
+                12.547005502497322,
+                10.387078127497892
+            ],
+            "slv_importance": [
+                12.203841726113899,
+                29.082108922538048,
+                15.27000591178398,
+                5.102822532400995,
+                4.227372688251314,
+                2.097133828827903
+            ]
+        },
+        "lime": {
+            "explained_instance_year": 2026,
+            "gld_explanation": [
+                [
+                    "GLD_Lag_1 > 170.30",
+                    454.0459357143726
+                ],
+                [
+                    "SLV_Lag_1 > 25.45",
+                    -252.8469801680071
+                ],
+                [
+                    "Year > 2021.50",
+                    -68.14956396193126
+                ],
+                [
+                    "SLV_Lag_2 > 23.30",
+                    -28.056994460635316
+                ],
+                [
+                    "GLD_Lag_2 > 165.83",
+                    20.335037736997045
+                ],
+                [
+                    "Gold_Silver_Ratio_Lag_1 <= 6.18",
+                    18.69492870036168
+                ]
+            ],
+            "slv_explanation": [
+                [
+                    "GLD_Lag_1 > 170.30",
+                    87.37641701602227
+                ],
+                [
+                    "SLV_Lag_1 > 25.45",
+                    -50.772589796268875
+                ],
+                [
+                    "Year > 2021.50",
+                    -24.473067062410223
+                ],
+                [
+                    "GLD_Lag_2 > 165.83",
+                    12.916738734247383
+                ],
+                [
+                    "SLV_Lag_2 > 23.30",
+                    -9.239036100833093
+                ],
+                [
+                    "Gold_Silver_Ratio_Lag_1 <= 6.18",
+                    4.764941498268677
+                ]
+            ]
+        }
+    }
+}

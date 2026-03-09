@@ -1,0 +1,45 @@
+================================================================================
+LSTM MODEL EXPLANATION FOR MOVEMENT PROBABILITY
+================================================================================
+
+This document explains exactly how the Long Short-Term Memory (LSTM) model works in the "Movement Probability" feature located in `backend/analysis/movement.py`.
+
+1. WHAT IS IT TRYING TO PREDICT?
+--------------------------------------------------------------------------------
+The model is answering a simple question: "Will the stock's closing price tomorrow be higher than today's closing price?"
+It is treated as a Binary Classification problem:
+- 1 = UP (Tomorrow's return > 0%)
+- 0 = DOWN (Tomorrow's return <= 0%)
+
+2. HOW IS THE DATA PREPARED?
+--------------------------------------------------------------------------------
+- Historical Data: The model downloads ~2 years of daily stock prices.
+- Feature Target: It calculates the daily percentage return (current_close / previous_close - 1). The 'Target' for today is derived by looking at tomorrow's return. 
+- The feature used for the LSTM is just a single variable: the daily percentage returns.
+- Scaling: The returns are scaled using `StandardScaler` so that they have a mean of 0 and a standard deviation of 1. Neural networks train much better on normalized data.
+
+3. HOW THE LSTM "SEES" THE DATA (SEQUENCES)
+--------------------------------------------------------------------------------
+Unlike standard models that look at one day at a time, LSTMs look at a "window" of time.
+- Sequence Length: 20 days.
+- This means to predict Day 21, the model looks at the string of returns from Day 1 to Day 20.
+- It slides this 20-day window across the 2-year history to generate thousands of overlapping "sequences" to train on.
+
+4. THE NEURAL NETWORK ARCHITECTURE
+--------------------------------------------------------------------------------
+The model uses TensorFlow/Keras and is intentionally kept "lightweight" to ensure the API responds quickly to the frontend:
+- Layer 1 (LSTM): 16 units with a 'relu' activation function. This is the memory layer that identifies patterns in the 20-day sequence.
+- Layer 2 (Dropout): 20% (0.2) dropout. This randomly turns off 20% of the neurons during training to prevent the model from "memorizing" the exact history (overfitting).
+- Layer 3 (Dense): 1 unit with a 'sigmoid' activation function. The sigmoid squashes the output into a probability between 0.0 and 1.0 (e.g., 0.72 = 72% chance of going UP).
+
+5. TRAINING
+--------------------------------------------------------------------------------
+- Optimizer: 'adam' (adjusts the weights efficiently during training).
+- Loss Function: 'binary_crossentropy' (standard for Yes/No, 1/0 classifications).
+- Epochs: 3. The model only loops over the data 3 times. This is done to prevent the API request from timing out on the frontend while the user waits.
+- Batch Size: 32 sequences are passed through the network at once before updating the weights.
+
+6. FINAL PREDICTION
+--------------------------------------------------------------------------------
+Once trained on the past 2 years, the model is fed the MOST RECENT 20 days of returns. It processes that final sequence and outputs a single float value (e.g., 0.65). 
+This value is multiplied by 100 to display the "LSTM Model (%)" in your React frontend as a progress bar!
