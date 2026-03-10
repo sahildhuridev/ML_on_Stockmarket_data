@@ -5,6 +5,7 @@ from .views import (
     VolumePortfolioView,
     VolumeChartView,
     DiscountedValueView,
+    ModelAccuracyView,
 )
 from .cluster import ClusterAnalysisView
 from .regression import StockPotentialView
@@ -19,4 +20,5 @@ urlpatterns = [
     path('clustering/', ClusterAnalysisView.as_view(), name='clustering'),
     path('stock-potential/', StockPotentialView.as_view(), name='stock-potential'),
     path('movement-probability/', MovementProbabilityView.as_view(), name='movement-probability'),
+    path('model-accuracy/', ModelAccuracyView.as_view(), name='model-accuracy'),
 ]

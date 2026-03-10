@@ -1,0 +1,14 @@
+artifact_uri: file:///C:/Users/Sahil/Desktop/bizmetric/bizmetric_sahil_fsd/ML_Stock_analysis/backend/ml_flow/mlruns/311227374697092667/1352256d26804698848520dfba9c5985/artifacts
+end_time: 1773178283813
+entry_point_name: ''
+experiment_id: '311227374697092667'
+lifecycle_stage: active
+run_id: 1352256d26804698848520dfba9c5985
+run_name: ARIMA_TCS.NS
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1773178271932
+status: 3
+tags: []
+user_id: Sahil

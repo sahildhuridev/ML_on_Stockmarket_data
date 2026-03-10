@@ -1,0 +1,10 @@
+artifact_location: file:///C:/Users/Sahil/Desktop/bizmetric/bizmetric_sahil_fsd/ML_Stock_analysis/backend/ml_flow/mlruns/311227374697092667/models/m-20a3c5eb9fba43789a5bbe9cf8aac463/artifacts
+creation_timestamp: 1773177169817
+experiment_id: '311227374697092667'
+last_updated_timestamp: 1773177205789
+model_id: m-20a3c5eb9fba43789a5bbe9cf8aac463
+model_type: null
+name: model
+source_run_id: 89ef13959bd74e34a1fb3b4db5fdc7b4
+status: 2
+status_message: null

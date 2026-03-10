@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import api from "../api/axios";
 import Spinner from "./Spinner";
 import {
@@ -15,6 +15,8 @@ import {
 
 const StockPotentialAnalysis = ({ portfolios }) => {
     const [selectedPortfolio, setSelectedPortfolio] = useState("all");
+    const [timeframe, setTimeframe] = useState("1y");
+    const [timeframeLabel, setTimeframeLabel] = useState("1-Year");
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState(null);
     const [error, setError] = useState("");
@@ -22,26 +24,39 @@ const StockPotentialAnalysis = ({ portfolios }) => {
     // For chart selection
     const [selectedTicker, setSelectedTicker] = useState("");
 
-    const runAnalysis = async () => {
+    const hasRunOnce = useRef(false);
+
+    const runAnalysis = async (tfOverride) => {
         setLoading(true);
         setError("");
         setResult(null);
         setSelectedTicker("");
 
-        try {
-            const res = await api.get(`/api/analysis/stock-potential/?portfolio_id=${selectedPortfolio}`);
-            setResult(res.data.results);
+        const tf = tfOverride || timeframe;
 
-            // Default selected chart to the first stock (highest return)
+        try {
+            const res = await api.get(`/api/analysis/stock-potential/?portfolio_id=${selectedPortfolio}&timeframe=${tf}`);
+            setResult(res.data.results);
+            setTimeframeLabel(res.data.timeframe_label || "1-Year");
+
             if (res.data.results && res.data.results.length > 0) {
                 setSelectedTicker(res.data.results[0].ticker);
             }
+            hasRunOnce.current = true;
         } catch (err) {
             setError(err.response?.data?.error || "Error running stock potential analysis.");
         } finally {
             setLoading(false);
         }
     };
+
+    // Auto re-fetch when timeframe changes (only after first manual run)
+    useEffect(() => {
+        if (hasRunOnce.current) {
+            runAnalysis(timeframe);
+        }
+        // eslint-disable-next-line
+    }, [timeframe]);
 
     // Get chart data for the currently selected ticker
     const activeChartData = useMemo(() => {
@@ -80,7 +95,7 @@ const StockPotentialAnalysis = ({ portfolios }) => {
                 <div>
                     <h2 className="text-lg font-semibold text-white tracking-wide">Stock Potential (Lin-Reg) 🎯</h2>
                     <p className="text-[#787b86] text-xs mt-1">
-                        Predicts future 1-year continuous price and expected returns using historical trendlines.
+                        Predicts future {timeframeLabel.toLowerCase()} continuous price and expected returns using historical trendlines.
                     </p>
                 </div>
 
@@ -98,6 +113,27 @@ const StockPotentialAnalysis = ({ portfolios }) => {
                         </select>
                     </div>
 
+                    {/* Timeframe Selector */}
+                    <div className="flex bg-[#131722] border border-[#2b2b43] rounded overflow-hidden">
+                        {[
+                            { key: '1w', label: '1W' },
+                            { key: '1m', label: '1M' },
+                            { key: '3m', label: '3M' },
+                            { key: '1y', label: '1Y' },
+                        ].map(tf => (
+                            <button
+                                key={tf.key}
+                                onClick={() => setTimeframe(tf.key)}
+                                className={`px-3 py-1.5 text-xs font-semibold transition-colors ${timeframe === tf.key
+                                    ? 'bg-[#089981]/20 text-[#089981] border-b-2 border-[#089981]'
+                                    : 'text-[#787b86] hover:bg-[#1e222d] hover:text-white'
+                                    }`}
+                            >
+                                {tf.label}
+                            </button>
+                        ))}
+                    </div>
+
                     <div className="flex items-center gap-2">
                         {result && (
                             <button
@@ -108,7 +144,7 @@ const StockPotentialAnalysis = ({ portfolios }) => {
                             </button>
                         )}
                         <button
-                            onClick={runAnalysis}
+                            onClick={() => runAnalysis()}
                             className="bg-[#089981] hover:bg-[#067a67] text-white text-sm font-medium py-1.5 px-4 rounded transition shadow-[0_0_10px_rgba(8,153,129,0.2)] hover:shadow-[0_0_15px_rgba(8,153,129,0.4)]"
                             disabled={loading}
                         >
@@ -133,7 +169,7 @@ const StockPotentialAnalysis = ({ portfolios }) => {
                         {/* Chart Section */}
                         <div className="bg-[#1e222d] border border-[#2b2b43] rounded-lg overflow-hidden shadow-lg p-4">
                             <div className="flex justify-between items-center mb-6">
-                                <h3 className="text-sm font-semibold text-white tracking-wide">1-Year Price Projection</h3>
+                                <h3 className="text-sm font-semibold text-white tracking-wide">{timeframeLabel} Price Projection</h3>
                                 <div className="flex items-center gap-2">
                                     <span className="text-xs text-[#787b86]">View Chart For:</span>
                                     <select
@@ -217,7 +253,7 @@ const StockPotentialAnalysis = ({ portfolios }) => {
                                         <tr>
                                             <th className="px-4 py-2 font-medium">Symbol</th>
                                             <th className="px-4 py-2 font-medium">Current Price</th>
-                                            <th className="px-4 py-2 font-medium">1-Year Target</th>
+                                            <th className="px-4 py-2 font-medium">{timeframeLabel} Target</th>
                                             <th className="px-4 py-2 font-medium">Return</th>
                                             <th className="px-4 py-2 font-medium text-center">Action</th>
                                         </tr>

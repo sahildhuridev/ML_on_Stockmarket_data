@@ -8,3 +8,10 @@ matplotlib
 shap
 lime
 statsmodels
+tensorflow
+scikit-learn
+numpy
+pandas
+mlflow
+celery
+redis

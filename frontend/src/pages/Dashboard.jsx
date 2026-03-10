@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import api from "../api/axios";
 import { Link } from "react-router-dom";
-import { LayoutDashboard, TrendingUp, Compass, Plus, Folders, Settings } from "lucide-react";
+import { LayoutDashboard, TrendingUp, Compass, Plus, Folders, Settings, Target, Cpu } from "lucide-react";
 
 import GoldSilverAnalysis from "../components/GoldSilverAnalysis";
 import GoldSilverUnivariateAnalysis from "../components/GoldSilverUnivariateAnalysis";
@@ -10,6 +10,8 @@ import ClusteringAnalysis from "../components/ClusteringAnalysis";
 import StockPotentialAnalysis from "../components/StockPotentialAnalysis";
 import MovementProbability from "../components/MovementProbability";
 import TimeSeriesAnalysis from "../components/TimeSeriesAnalysis";
+import ModelAccuracy from "../components/ModelAccuracy";
+import MLWorkflow from "../components/MLWorkflow";
 
 const Dashboard = () => {
   const [portfolios, setPortfolios] = useState([]);
@@ -62,6 +64,22 @@ const Dashboard = () => {
           >
             <TrendingUp size={18} />
             <span className="font-medium text-sm">ML Projections</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('beforeLive')}
+            className={`w-full flex items-center space-x-3 px-3 py-2 rounded-md transition-colors ${activeTab === 'beforeLive' ? 'bg-[#2962FF] text-white' : 'text-[#787b86] hover:bg-[#2a2e39] hover:text-[#d1d4dc]'}`}
+          >
+            <Target size={18} />
+            <span className="font-medium text-sm">Before Live Market</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('mlflow')}
+            className={`w-full flex items-center space-x-3 px-3 py-2 rounded-md transition-colors ${activeTab === 'mlflow' ? 'bg-[#2962FF] text-white' : 'text-[#787b86] hover:bg-[#2a2e39] hover:text-[#d1d4dc]'}`}
+          >
+            <Cpu size={18} />
+            <span className="font-medium text-sm">ML Workflow</span>
           </button>
 
           <button
@@ -133,7 +151,9 @@ const Dashboard = () => {
             <h2 className="text-lg font-semibold text-white">
               {activeTab === 'overview' ? 'Global Markets Overview' :
                 activeTab === 'analysis' ? 'Machine Learning Projections' :
-                  'Live Market'}
+                  activeTab === 'beforeLive' ? 'Before Live Market — Model Accuracy' :
+                    activeTab === 'mlflow' ? 'ML Workflow Pipeline' :
+                      'Live Market'}
             </h2>
             <div className="h-4 w-px bg-[#2b2b43] mx-2"></div>
             <div className="hidden md:flex items-center bg-[#131722] border border-[#2b2b43] rounded px-3 py-1.5 w-64 focus-within:border-[#2962FF] transition-colors">
@@ -190,6 +210,18 @@ const Dashboard = () => {
               <div className="w-full border border-[#2b2b43] rounded-lg bg-[#1e222d] shadow-xl overflow-hidden">
                 <ClusteringAnalysis portfolios={portfolios} />
               </div>
+            </div>
+          )}
+
+          {activeTab === 'beforeLive' && (
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <ModelAccuracy portfolios={portfolios} />
+            </div>
+          )}
+
+          {activeTab === 'mlflow' && (
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <MLWorkflow portfolios={portfolios} />
             </div>
           )}
 

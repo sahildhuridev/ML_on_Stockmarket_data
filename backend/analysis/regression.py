@@ -12,8 +12,23 @@ from stocks.models import Stock
 class StockPotentialView(APIView):
     permission_classes = [IsAuthenticated]
 
+    # Timeframe configurations: (yfinance_period, prediction_trading_days, label)
+    TIMEFRAME_MAP = {
+        '1w':  ('3mo',   5,   '1-Week'),
+        '1m':  ('6mo',  21,   '1-Month'),
+        '3m':  ('1y',   63,   '3-Month'),
+        '1y':  ('2y',  252,   '1-Year'),
+    }
+
     def get(self, request):
         portfolio_id = request.GET.get("portfolio_id")
+        timeframe = request.GET.get("timeframe", "1y")
+
+        tf_config = self.TIMEFRAME_MAP.get(timeframe)
+        if not tf_config:
+            return Response({"error": f"Invalid timeframe: {timeframe}. Use 1w, 1m, 3m, or 1y."}, status=400)
+        
+        hist_period, pred_days, tf_label = tf_config
         
         tickers = []
         if portfolio_id == "all":
@@ -35,9 +50,8 @@ class StockPotentialView(APIView):
         # Remove duplicates
         tickers = list(set(tickers))
         
-        # Download 1-year data
-        # auto_adjust=True handles splits and dividends
-        data = yf.download(tickers, period="1y", group_by="ticker", auto_adjust=True)
+        # Download historical data based on timeframe
+        data = yf.download(tickers, period=hist_period, group_by="ticker", auto_adjust=True)
         
         results = []
         for ticker in tickers:
@@ -48,12 +62,10 @@ class StockPotentialView(APIView):
                 else:
                     df = data[ticker]
                 
-                # We need the 'Close' price and drop any NaN values
                 df_clean = df[['Close']].dropna()
-                if len(df_clean) < 30: # Need enough data for a basic linear regression
+                if len(df_clean) < 30:
                     continue
                 
-                # Sort by date just to be safe
                 df_clean = df_clean.sort_index()    
                 
                 prices = df_clean['Close'].values
@@ -67,37 +79,43 @@ class StockPotentialView(APIView):
                 model = LinearRegression()
                 model.fit(X, y)
                 
-                # Current Price is the last actual price
                 current_price = float(prices[-1])
                 
-                # Future Prediction: Predict 252 trading days (~1 year) into the future
-                future_X_single = np.array([[len(prices) + 252]])
+                # Predict target price at the end of the selected timeframe
+                future_X_single = np.array([[len(prices) + pred_days]])
                 predicted_price = float(model.predict(future_X_single)[0])
-                
-                # Calculate Expected Return (%)
                 expected_return = ((predicted_price - current_price) / current_price) * 100
                 
-                # Generate Chart Data (Historical + Future Trendline)
-                # 1. We create the trendline for the *historical* part
-                historical_trend = model.predict(X)
-                
-                # 2. We generate the *future* dates and predict their trend
+                # --- Volatility estimation for realistic predictions ---
+                returns = np.diff(np.log(prices[prices > 0]))
+                hist_vol = float(np.std(returns)) if len(returns) > 1 else 0.01
+                rng = np.random.RandomState(hash(ticker) % (2**31))
+
+                # Generate future dates and predictions
                 last_date = dates[-1]
-                future_dates = [last_date + datetime.timedelta(days=int(i * (365/252))) for i in range(1, 253)]
-                future_X = np.arange(len(prices), len(prices) + 252).reshape(-1, 1)
-                future_trend = model.predict(future_X)
+                calendar_days_per_trading = 365.0 / 252.0
+                future_dates = [last_date + datetime.timedelta(days=int(i * calendar_days_per_trading))
+                                for i in range(1, pred_days + 1)]
+                future_X = np.arange(len(prices), len(prices) + pred_days).reshape(-1, 1)
+                future_trend_raw = model.predict(future_X).flatten()
                 
+                # Apply realistic noise to future trend
+                noise_returns = rng.normal(0, hist_vol * 0.8, pred_days)
+                cumulative_noise = np.cumsum(noise_returns) * current_price
+                future_trend = future_trend_raw + cumulative_noise
+                future_trend = np.maximum(future_trend, future_trend_raw * 0.5)
+
                 chart_data = []
                 
-                # Add historical data points
+                # Add historical data points (no trend overlay on historical)
                 for i in range(len(dates)):
                     chart_data.append({
                         "date": dates[i].strftime("%Y-%m-%d"),
                         "actual": float(prices[i]),
-                        "trend": float(historical_trend[i])
+                        "trend": None
                     })
                     
-                # Add future data points (actual is null)
+                # Add future data points with realistic trend
                 for i in range(len(future_dates)):
                     chart_data.append({
                         "date": future_dates[i].strftime("%Y-%m-%d"),
@@ -121,5 +139,7 @@ class StockPotentialView(APIView):
         results.sort(key=lambda x: x['expected_return'], reverse=True)
             
         return Response({
+            "timeframe_label": tf_label,
             "results": results
         })
+

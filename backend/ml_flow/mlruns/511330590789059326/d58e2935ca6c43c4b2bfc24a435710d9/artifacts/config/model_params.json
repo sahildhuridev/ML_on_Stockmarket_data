@@ -1,0 +1,6 @@
+{
+  "model_type": "ARIMA",
+  "order": "(5,1,0)",
+  "train_size": 143,
+  "test_size": 36
+}

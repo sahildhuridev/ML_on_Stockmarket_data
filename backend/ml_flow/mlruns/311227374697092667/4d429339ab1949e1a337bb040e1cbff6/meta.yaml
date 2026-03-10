@@ -1,0 +1,14 @@
+artifact_uri: file:///C:/Users/Sahil/Desktop/bizmetric/bizmetric_sahil_fsd/ML_Stock_analysis/backend/ml_flow/mlruns/311227374697092667/4d429339ab1949e1a337bb040e1cbff6/artifacts
+end_time: 1773173734902
+entry_point_name: ''
+experiment_id: '311227374697092667'
+lifecycle_stage: active
+run_id: 4d429339ab1949e1a337bb040e1cbff6
+run_name: LinearRegression_TCS.NS
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1773173714816
+status: 3
+tags: []
+user_id: Sahil

@@ -1,0 +1,14 @@
+artifact_uri: file:///C:/Users/Sahil/Desktop/bizmetric/bizmetric_sahil_fsd/ML_Stock_analysis/backend/ml_flow/mlruns/339468513706650249/ab3eb4b4f2a74324bdde7d1fc64b0a5a/artifacts
+end_time: 1773173218013
+entry_point_name: ''
+experiment_id: '339468513706650249'
+lifecycle_stage: active
+run_id: ab3eb4b4f2a74324bdde7d1fc64b0a5a
+run_name: LinearRegression_NDTV.NS
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1773173201317
+status: 3
+tags: []
+user_id: Sahil

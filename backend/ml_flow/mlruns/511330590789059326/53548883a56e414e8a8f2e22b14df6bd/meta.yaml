@@ -1,0 +1,14 @@
+artifact_uri: file:///C:/Users/Sahil/Desktop/bizmetric/bizmetric_sahil_fsd/ML_Stock_analysis/backend/ml_flow/mlruns/511330590789059326/53548883a56e414e8a8f2e22b14df6bd/artifacts
+end_time: 1773170578360
+entry_point_name: ''
+experiment_id: '511330590789059326'
+lifecycle_stage: active
+run_id: 53548883a56e414e8a8f2e22b14df6bd
+run_name: ARIMA_WIT
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1773170577590
+status: 3
+tags: []
+user_id: Sahil

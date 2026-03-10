@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import api from "../api/axios";
 import Spinner from "./Spinner";
 import {
@@ -11,6 +11,8 @@ import {
     Tooltip,
     Legend,
     ResponsiveContainer,
+    Brush,
+    ReferenceArea,
 } from "recharts";
 
 // Custom Candlestick Render
@@ -71,6 +73,13 @@ const TimeSeriesAnalysis = () => {
     const [chartData, setChartData] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+
+    // Zoom state for click-drag zoom
+    const [refAreaLeft, setRefAreaLeft] = useState(null);
+    const [refAreaRight, setRefAreaRight] = useState(null);
+    const [zoomLeft, setZoomLeft] = useState(null);
+    const [zoomRight, setZoomRight] = useState(null);
+    const isZoomed = zoomLeft !== null && zoomRight !== null;
 
     const fetchAnalysisData = async () => {
         setLoading(true);
@@ -145,7 +154,7 @@ const TimeSeriesAnalysis = () => {
         setShowDropdown(false);
     };
 
-    // Format Data
+    // Format Data (must be before zoom handlers that reference it)
     const formattedData = chartData.map(d => {
         const hasBody = d.Open != null && d.Close != null;
         const minBody = hasBody ? Math.min(d.Open, d.Close) : null;
@@ -156,17 +165,55 @@ const TimeSeriesAnalysis = () => {
         return {
             ...d,
             CleanDate: dateStr,
-            CandleBounds: hasBody ? [minBody, maxBody] : [0, 0], // Recharts array format
+            CandleBounds: hasBody ? [minBody, maxBody] : [0, 0],
         };
     });
 
-    // Dynamic Y-Axis scale avoiding 0-bounds for empty predictions
+    // --- Zoom handlers ---
+    const handleMouseDown = useCallback((e) => {
+        if (e && e.activeLabel) setRefAreaLeft(e.activeLabel);
+    }, []);
+
+    const handleMouseMove = useCallback((e) => {
+        if (refAreaLeft && e && e.activeLabel) setRefAreaRight(e.activeLabel);
+    }, [refAreaLeft]);
+
+    const handleMouseUp = useCallback(() => {
+        if (!refAreaLeft || !refAreaRight) {
+            setRefAreaLeft(null);
+            setRefAreaRight(null);
+            return;
+        }
+        // Determine indices for left & right in formattedData
+        const allDates = formattedData.map(d => d.CleanDate);
+        let idxL = allDates.indexOf(refAreaLeft);
+        let idxR = allDates.indexOf(refAreaRight);
+        if (idxL > idxR) [idxL, idxR] = [idxR, idxL];
+
+        if (idxR - idxL >= 1) {
+            setZoomLeft(idxL);
+            setZoomRight(idxR);
+        }
+        setRefAreaLeft(null);
+        setRefAreaRight(null);
+    }, [refAreaLeft, refAreaRight, formattedData]);
+
+    const resetZoom = useCallback(() => {
+        setZoomLeft(null);
+        setZoomRight(null);
+    }, []);
+
+    // Sliced data for zoom view
+    const displayData = isZoomed
+        ? formattedData.slice(zoomLeft, zoomRight + 1)
+        : formattedData;
+
+    // Dynamic Y-Axis scale based on visible (possibly zoomed) data
     let minPrice = 'auto';
     let maxPrice = 'auto';
-    if (formattedData.length > 0) {
-        // Collect all possible price values
+    if (displayData.length > 0) {
         const allPrices = [];
-        formattedData.forEach(d => {
+        displayData.forEach(d => {
             if (d.Low != null) allPrices.push(d.Low);
             if (d.High != null) allPrices.push(d.High);
             if (d.LR_Predict != null) allPrices.push(d.LR_Predict);
@@ -247,86 +294,86 @@ const TimeSeriesAnalysis = () => {
                     {/* Control Panel */}
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
 
-                <div className="flex items-center space-x-2 relative w-72 z-20">
-                    <div className="bg-[#131722] border border-[#2b2b43] rounded px-3 py-1.5 focus-within:border-[#2962FF] transition-colors w-full">
-                        <input
-                            className="bg-transparent text-sm text-white outline-none uppercase font-bold w-full"
-                            type="text"
-                            value={symbolInput}
-                            onChange={(e) => {
-                                setSymbolInput(e.target.value);
-                                setShowDropdown(true);
-                            }}
-                            onFocus={() => {
-                                if (searchResults.length > 0) setShowDropdown(true);
-                            }}
-                            placeholder="e.g. AAPL"
-                            onKeyDown={(e) => e.key === 'Enter' && handleAnalyze()}
-                        />
-                    </div>
-                    <button
-                        onClick={handleAnalyze}
-                        className="bg-[#2962FF] hover:bg-blue-600 text-white px-4 py-1.5 rounded text-sm font-medium transition-colors"
-                    >
-                        Forecast
-                    </button>
+                        <div className="flex items-center space-x-2 relative w-72 z-20">
+                            <div className="bg-[#131722] border border-[#2b2b43] rounded px-3 py-1.5 focus-within:border-[#2962FF] transition-colors w-full">
+                                <input
+                                    className="bg-transparent text-sm text-white outline-none uppercase font-bold w-full"
+                                    type="text"
+                                    value={symbolInput}
+                                    onChange={(e) => {
+                                        setSymbolInput(e.target.value);
+                                        setShowDropdown(true);
+                                    }}
+                                    onFocus={() => {
+                                        if (searchResults.length > 0) setShowDropdown(true);
+                                    }}
+                                    placeholder="e.g. AAPL"
+                                    onKeyDown={(e) => e.key === 'Enter' && handleAnalyze()}
+                                />
+                            </div>
+                            <button
+                                onClick={handleAnalyze}
+                                className="bg-[#2962FF] hover:bg-blue-600 text-white px-4 py-1.5 rounded text-sm font-medium transition-colors"
+                            >
+                                Forecast
+                            </button>
 
-                    {showDropdown && searchResults.length > 0 && (
-                        <div className="absolute top-10 left-0 w-full bg-[#1e222d] border border-[#2b2b43] rounded shadow-2xl max-h-60 overflow-y-auto">
-                            {searchResults.map((result, idx) => (
-                                <div
-                                    key={`${result.ticker}-${idx}`}
-                                    className="px-4 py-2 hover:bg-[#2a2e39] cursor-pointer flex justify-between items-center border-b border-[#2b2b43] last:border-b-0"
-                                    onClick={() => handleSelectStock(result)}
-                                >
-                                    <span className="font-medium text-white truncate max-w-[70%]">{result.company_name}</span>
-                                    <span className="text-xs text-[#787b86] font-bold">{result.ticker}</span>
+                            {showDropdown && searchResults.length > 0 && (
+                                <div className="absolute top-10 left-0 w-full bg-[#1e222d] border border-[#2b2b43] rounded shadow-2xl max-h-60 overflow-y-auto">
+                                    {searchResults.map((result, idx) => (
+                                        <div
+                                            key={`${result.ticker}-${idx}`}
+                                            className="px-4 py-2 hover:bg-[#2a2e39] cursor-pointer flex justify-between items-center border-b border-[#2b2b43] last:border-b-0"
+                                            onClick={() => handleSelectStock(result)}
+                                        >
+                                            <span className="font-medium text-white truncate max-w-[70%]">{result.company_name}</span>
+                                            <span className="text-xs text-[#787b86] font-bold">{result.ticker}</span>
+                                        </div>
+                                    ))}
                                 </div>
+                            )}
+                        </div>
+
+                        <div className="flex bg-[#131722] border border-[#2b2b43] rounded overflow-hidden">
+                            {[
+                                { l: '1h', p: '5d' },
+                                { l: '1d', p: '1y' },
+                                { l: '1wk', p: '2y' },
+                                { l: '1mo', p: '5y' }
+                            ].map(tf => (
+                                <button
+                                    key={tf.l}
+                                    onClick={() => { setInterval(tf.l); setPeriod(tf.p); }}
+                                    className={`px-3 py-1.5 text-xs font-semibold ${interval === tf.l ? 'bg-[#2b2b43] text-white' : 'text-[#787b86] hover:bg-[#1e222d]'}`}
+                                >
+                                    {tf.l}
+                                </button>
                             ))}
                         </div>
-                    )}
-                </div>
 
-                <div className="flex bg-[#131722] border border-[#2b2b43] rounded overflow-hidden">
-                    {[
-                        { l: '1h', p: '5d' },
-                        { l: '1d', p: '1y' },
-                        { l: '1wk', p: '2y' },
-                        { l: '1mo', p: '5y' }
-                    ].map(tf => (
-                        <button
-                            key={tf.l}
-                            onClick={() => { setInterval(tf.l); setPeriod(tf.p); }}
-                            className={`px-3 py-1.5 text-xs font-semibold ${interval === tf.l ? 'bg-[#2b2b43] text-white' : 'text-[#787b86] hover:bg-[#1e222d]'}`}
-                        >
-                            {tf.l}
-                        </button>
-                    ))}
-                </div>
+                        <div className="flex items-center space-x-4 bg-[#131722] p-2 rounded border border-[#2b2b43]">
+                            <h4 className="text-xs text-[#787b86] uppercase font-bold mr-2">Models:</h4>
 
-                <div className="flex items-center space-x-4 bg-[#131722] p-2 rounded border border-[#2b2b43]">
-                    <h4 className="text-xs text-[#787b86] uppercase font-bold mr-2">Models:</h4>
+                            <label className="flex items-center space-x-1.5 cursor-pointer text-sm">
+                                <input type="checkbox" checked={models.arima} onChange={() => handleModelChange('arima')} className="accent-amber-400" />
+                                <span>ARIMA</span>
+                            </label>
 
-                    <label className="flex items-center space-x-1.5 cursor-pointer text-sm">
-                        <input type="checkbox" checked={models.arima} onChange={() => handleModelChange('arima')} className="accent-amber-400" />
-                        <span>ARIMA</span>
-                    </label>
+                            <label className="flex items-center space-x-1.5 cursor-pointer text-sm">
+                                <input type="checkbox" checked={models.linear} onChange={() => handleModelChange('linear')} className="accent-blue-500" />
+                                <span>Linear</span>
+                            </label>
 
-                    <label className="flex items-center space-x-1.5 cursor-pointer text-sm">
-                        <input type="checkbox" checked={models.linear} onChange={() => handleModelChange('linear')} className="accent-blue-500" />
-                        <span>Linear</span>
-                    </label>
+                            <label className="flex items-center space-x-1.5 cursor-pointer text-sm">
+                                <input type="checkbox" checked={models.sma_extrapolate} onChange={() => handleModelChange('sma_extrapolate')} className="accent-emerald-500" />
+                                <span>SMA</span>
+                            </label>
 
-                    <label className="flex items-center space-x-1.5 cursor-pointer text-sm">
-                        <input type="checkbox" checked={models.sma_extrapolate} onChange={() => handleModelChange('sma_extrapolate')} className="accent-emerald-500" />
-                        <span>SMA</span>
-                    </label>
-
-                    <label className="flex items-center space-x-1.5 cursor-pointer text-sm">
-                        <input type="checkbox" checked={models.poly} onChange={() => handleModelChange('poly')} className="accent-pink-500" />
-                        <span>Polynomial</span>
-                    </label>
-                </div>
+                            <label className="flex items-center space-x-1.5 cursor-pointer text-sm">
+                                <input type="checkbox" checked={models.poly} onChange={() => handleModelChange('poly')} className="accent-pink-500" />
+                                <span>Polynomial</span>
+                            </label>
+                        </div>
                     </div>
 
                     {error && (
@@ -335,8 +382,20 @@ const TimeSeriesAnalysis = () => {
                         </div>
                     )}
 
+                    {/* Zoom Reset Button */}
+                    {isZoomed && (
+                        <div className="flex justify-end mb-2">
+                            <button
+                                onClick={resetZoom}
+                                className="text-xs font-semibold px-3 py-1.5 rounded border border-amber-500/40 bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 transition-colors"
+                            >
+                                ⟳ Reset Zoom
+                            </button>
+                        </div>
+                    )}
+
                     {/* Chart Area */}
-                    <div className="w-full h-[500px] relative mt-4">
+                    <div className="w-full h-[550px] relative mt-4">
                         {loading && (
                             <div className="absolute inset-0 bg-[#1e222d]/80 z-10 flex items-center justify-center rounded">
                                 <Spinner />
@@ -345,13 +404,19 @@ const TimeSeriesAnalysis = () => {
 
                         {!loading && chartData.length > 0 && (
                             <ResponsiveContainer width="100%" height="100%">
-                                <ComposedChart data={formattedData} margin={{ top: 10, right: 10, left: 10, bottom: 20 }}>
+                                <ComposedChart
+                                    data={displayData}
+                                    margin={{ top: 10, right: 10, left: 10, bottom: 40 }}
+                                    onMouseDown={handleMouseDown}
+                                    onMouseMove={handleMouseMove}
+                                    onMouseUp={handleMouseUp}
+                                >
                                     <CartesianGrid strokeDasharray="3 3" stroke="#2b2b43" vertical={false} />
 
                                     <XAxis
                                         dataKey="CleanDate"
                                         stroke="#787b86"
-                                        tick={{ fill: '#787b86', fontSize: 12 }}
+                                        tick={{ fill: '#787b86', fontSize: 11 }}
                                         tickMargin={10}
                                         minTickGap={30}
                                     />
@@ -375,7 +440,7 @@ const TimeSeriesAnalysis = () => {
                                         <Line type="monotone" dataKey="LR_Predict" name="Linear Extrapolate" stroke="#60a5fa" strokeWidth={3} strokeDasharray="4 4" dot={false} isAnimationActive={false} />
                                     )}
                                     {models.sma_extrapolate && (
-                                        <Line type="stepAfter" dataKey="SMA_Predict" name="SMA Project" stroke="#34d399" strokeWidth={3} strokeDasharray="4 4" dot={false} isAnimationActive={false} />
+                                        <Line type="monotone" dataKey="SMA_Predict" name="SMA Project" stroke="#34d399" strokeWidth={3} strokeDasharray="4 4" dot={false} isAnimationActive={false} />
                                     )}
                                     {models.poly && (
                                         <Line type="monotone" dataKey="Poly_Predict" name="Poly Curve" stroke="#f472b6" strokeWidth={3} strokeDasharray="4 4" dot={false} isAnimationActive={false} />
@@ -389,6 +454,28 @@ const TimeSeriesAnalysis = () => {
                                         isAnimationActive={false}
                                         shape={<CandlestickRender />}
                                     />
+
+                                    {/* Brush for zoom/scroll */}
+                                    {!isZoomed && (
+                                        <Brush
+                                            dataKey="CleanDate"
+                                            height={28}
+                                            stroke="#2962FF"
+                                            fill="#131722"
+                                            tickFormatter={() => ''}
+                                        />
+                                    )}
+
+                                    {/* Click-drag selection highlight */}
+                                    {refAreaLeft && refAreaRight && (
+                                        <ReferenceArea
+                                            x1={refAreaLeft}
+                                            x2={refAreaRight}
+                                            strokeOpacity={0.3}
+                                            fill="#2962FF"
+                                            fillOpacity={0.15}
+                                        />
+                                    )}
                                 </ComposedChart>
                             </ResponsiveContainer>
                         )}

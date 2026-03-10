@@ -1,0 +1,14 @@
+artifact_uri: file:///C:/Users/Sahil/Desktop/bizmetric/bizmetric_sahil_fsd/ML_Stock_analysis/backend/ml_flow/mlruns/777504492591937146/f358fe78ac5048e4b913783a32450ba3/artifacts
+end_time: 1773173778225
+entry_point_name: ''
+experiment_id: '777504492591937146'
+lifecycle_stage: active
+run_id: f358fe78ac5048e4b913783a32450ba3
+run_name: LinearRegression_INFY.NS
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1773173759039
+status: 3
+tags: []
+user_id: Sahil

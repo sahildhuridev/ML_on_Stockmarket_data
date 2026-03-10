@@ -1,0 +1,14 @@
+artifact_uri: file:///C:/Users/Sahil/Desktop/bizmetric/bizmetric_sahil_fsd/ML_Stock_analysis/backend/ml_flow/mlruns/651583865379906559/af244ab6b24d45bb90cc9f8d5320d804/artifacts
+end_time: 1773172972467
+entry_point_name: ''
+experiment_id: '651583865379906559'
+lifecycle_stage: active
+run_id: af244ab6b24d45bb90cc9f8d5320d804
+run_name: ARIMA_ADANIENT.NS
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1773172972067
+status: 3
+tags: []
+user_id: Sahil

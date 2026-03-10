@@ -1,0 +1,718 @@
+================================================================================
+                    ML_STOCK_ANALYSIS - BACKEND CONNECTIONS MAP
+             Complete Structure, Functions & Connection Analysis
+================================================================================
+
+
+================================================================================
+1. PROJECT OVERVIEW
+================================================================================
+
+Tech Stack:
+  Backend:  Django 6.0 + Django REST Framework + SimpleJWT
+  Frontend: React (Vite) + TailwindCSS + Recharts
+  Database: SQLite3
+  ML Libs:  scikit-learn, TensorFlow/Keras, statsmodels, SHAP, LIME
+  Data:     Yahoo Finance (yfinance)
+
+Django Apps (5 custom + 1 config):
+  - config       → Project settings & root URL routing
+  - accounts     → User registration & JWT authentication
+  - portfolios   → Portfolio CRUD
+  - stocks       → Stock CRUD & Yahoo Finance search
+  - analysis     → Stock analytics, charting, ML projections
+  - ml_models    → Gold/Silver forecasting, Crypto & Time Series analysis
+
+
+================================================================================
+2. DATA MODELS & RELATIONSHIPS
+================================================================================
+
+┌──────────────────────┐
+│   Django auth.User   │  (built-in)
+│   - id               │
+│   - username         │
+│   - password         │
+└──────┬───────────────┘
+       │ 1:N (ForeignKey)
+       ▼
+┌──────────────────────┐
+│   portfolios.Portfolio│  (portfolios/models.py)
+│   - id               │
+│   - user (FK → User) │
+│   - name             │
+│   - created_at       │
+└──────┬───────────────┘
+       │ 1:N (ForeignKey, related_name="stocks")
+       ▼
+┌──────────────────────┐
+│   stocks.Stock       │  (stocks/models.py)
+│   - id               │
+│   - portfolio (FK)   │
+│   - ticker           │
+│   - company_name     │
+│   - added_at         │
+└──────────────────────┘
+
+Relationships:
+  User  ──(has many)──►  Portfolio  ──(has many)──►  Stock
+  Portfolio.stocks.all() → gets all Stock objects in a portfolio
+  Stock.portfolio.user   → gets the owning User
+
+
+================================================================================
+3. URL ROUTING (Complete Endpoint Map)
+================================================================================
+
+Root:  config/urls.py
+  ├── admin/                          → Django Admin
+  ├── api/accounts/                   → accounts.urls
+  │    ├── register/                  → RegisterView          [POST]
+  │    ├── login/                     → TokenObtainPairView   [POST]  (JWT)
+  │    ├── refresh/                   → TokenRefreshView      [POST]  (JWT)
+  │    └── me/                        → MeView                [GET]
+  │
+  ├── api/portfolios/                 → portfolios.urls (DefaultRouter)
+  │    ├── /                          → PortfolioViewSet      [GET, POST]
+  │    └── /<id>/                     → PortfolioViewSet      [GET, PUT, PATCH, DELETE]
+  │
+  ├── api/stocks/                     → stocks.urls (DefaultRouter + manual)
+  │    ├── search/                    → StockSearchView       [GET]
+  │    ├── /                          → StockViewSet          [GET, POST]
+  │    └── /<id>/                     → StockViewSet          [GET, PUT, PATCH, DELETE]
+  │
+  ├── api/analysis/                   → analysis.urls
+  │    ├── price-chart/               → PriceGraphView        [GET]
+  │    ├── pe-ratio/                  → PERatioView           [GET]
+  │    ├── volume-portfolio/          → VolumePortfolioView   [GET]
+  │    ├── volume-chart/              → VolumeChartView       [GET]
+  │    ├── discounted-value/          → DiscountedValueView   [GET]
+  │    ├── clustering/                → ClusterAnalysisView   [GET]
+  │    ├── stock-potential/           → StockPotentialView     [GET]
+  │    ├── movement-probability/      → MovementProbabilityView [GET]
+  │    └── model-accuracy/            → ModelAccuracyView     [POST]
+  │
+  └── api/ml_models/                  → ml_models.urls
+       ├── gold-silver/               → GoldSilverAnalysisView      [GET, POST]
+       ├── gold-silver-univariate/    → GoldSilverUnivariateAnalysisView [GET, POST]
+       ├── crypto/                    → CryptoAnalysisView           [POST]
+       └── time-series/               → TimeSeriesAnalysisView       [POST]
+
+
+================================================================================
+4. APP-BY-APP FUNCTION BREAKDOWN
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+4.1  config/ (Project Configuration)
+────────────────────────────────────────────────────────────────────────────────
+
+  settings.py:
+    - INSTALLED_APPS: accounts, portfolios, stocks, analysis, ml_models
+    - REST_FRAMEWORK: JWT auth globally, IsAuthenticated by default
+    - SIMPLE_JWT: access=60min, refresh=1day
+    - CORS_ALLOW_ALL_ORIGINS = True
+    - DATABASES: SQLite3
+    - MEDIA_URL/ROOT: serves chart images
+
+  urls.py:
+    - Mounts all 5 app URL files under api/ prefix
+    - Serves MEDIA files (chart images)
+
+────────────────────────────────────────────────────────────────────────────────
+4.2  accounts/ (Authentication)
+────────────────────────────────────────────────────────────────────────────────
+
+  serializers.py:
+    class RegisterSerializer(ModelSerializer)
+      - Fields: id, username, password (write_only)
+      - create(): calls User.objects.create_user()
+
+  views.py:
+    class RegisterView(CreateAPIView)
+      - Permission: AllowAny
+      - Serializer: RegisterSerializer
+      - Creates new Django User
+
+    class MeView(RetrieveAPIView)
+      - Permission: IsAuthenticated (default)
+      - GET → returns { username, message }
+
+  External Dependencies: None
+  Calls Into:            Django auth.User
+  Called By:             Frontend Login/Register pages
+
+────────────────────────────────────────────────────────────────────────────────
+4.3  portfolios/ (Portfolio CRUD)
+────────────────────────────────────────────────────────────────────────────────
+
+  models.py:
+    class Portfolio
+      - user (FK → User)
+      - name (CharField)
+      - created_at
+
+  serializers.py:
+    class PortfolioSerializer(ModelSerializer)
+      - All fields, user is read_only
+
+  views.py:
+    class PortfolioViewSet(ModelViewSet)
+      - get_queryset():    filters by request.user
+      - perform_create():  sets user=request.user
+      - Full CRUD via DefaultRouter
+
+  External Dependencies: None
+  Calls Into:            Portfolio model
+  Called By:             Frontend Dashboard, analysis views (via Portfolio lookups)
+
+────────────────────────────────────────────────────────────────────────────────
+4.4  stocks/ (Stock Management & Search)
+────────────────────────────────────────────────────────────────────────────────
+
+  models.py:
+    class Stock
+      - portfolio (FK → Portfolio, related_name="stocks")
+      - ticker, company_name, added_at
+
+  serializers.py:
+    class StockSerializer(ModelSerializer)
+      - All fields
+
+  views.py:
+    class StockViewSet(ModelViewSet)
+      - get_queryset(): Stock.objects.filter(portfolio__user=request.user)
+      - Full CRUD
+
+    class StockSearchView(APIView)
+      - GET ?q=<query>
+      - Calls Yahoo Finance search API (query2.finance.yahoo.com)
+      - Returns top 5 results: { ticker, company_name }
+
+  External Dependencies: requests (HTTP), Yahoo Finance search API
+  Calls Into:            Stock model, Portfolio model (via FK)
+  Called By:             Frontend PortfolioDetail page
+
+────────────────────────────────────────────────────────────────────────────────
+4.5  analysis/ (Stock Analytics & ML Projections)
+────────────────────────────────────────────────────────────────────────────────
+
+  FILE: analysis/views.py
+  ─────────────────────
+
+  Helper Functions:
+    _to_float(value)
+      - Safe float conversion, returns None on failure
+
+    _save_plot_and_get_url(request, filename_prefix)
+      - Saves matplotlib plot to MEDIA_ROOT with UUID filename
+      - Returns absolute URL to the saved image
+
+  Views:
+
+    class PriceGraphView(APIView)            [GET ?ticker=AAPL]
+      - Downloads 6mo data via yf.download()
+      - Plots Close prices with matplotlib
+      - Returns: { ticker, image_url }
+      - Data Source: yfinance
+
+    class PERatioView(APIView)               [GET ?portfolio_id=N]
+      - Loads portfolio → stocks
+      - Fetches PE ratio from yf.Ticker(ticker).info["trailingPE"]
+      - Calculates Q1/Median/Q3 valuation lines
+      - Plots scatter chart with valuation bands
+      - Returns: { portfolio, undervalued_line, overvalued_line, median_pe, image_url }
+      - Data Source: yfinance, Portfolio model, Stock model
+
+    class VolumePortfolioView(APIView)       [GET ?portfolio_id=N]
+      - Loads portfolio → stocks
+      - Downloads 3mo volume data per stock
+      - Plots bar chart of average daily volume
+      - Returns: { portfolio, metric, image_url }
+      - Data Source: yfinance, Portfolio model, Stock model
+
+    class VolumeChartView(APIView)           [GET ?ticker=AAPL]
+      - Downloads 6mo volume data
+      - Plots line chart with fill
+      - Returns: { ticker, image_url }
+      - Data Source: yfinance
+
+    class DiscountedValueView(APIView)       [GET ?portfolio_id=N]
+      - Loads portfolio → stocks
+      - Fetches 52-week high/low/price from yf.Ticker.info
+      - Calculates position_in_range and discount_value
+      - Generates 3 charts: 52w-low, 52w-high, discount-amount
+      - Returns: { portfolio, image_url_low, image_url_high, image_url_discount, rows[] }
+      - Data Source: yfinance, Portfolio model, Stock model
+
+    class ModelAccuracyView(APIView)         [POST {portfolio_id, target_date, target_hour}]
+      - Loads portfolio → stocks
+      - Delegates to analysis/model_accuracy.py → analyze_portfolio_stocks()
+      - Returns: { stocks[], model_ranking[], analysis{} }
+      - Data Source: yfinance (hourly), Portfolio/Stock models
+
+  ─────────────────────────────────────────────────────────────────────────────
+  FILE: analysis/cluster.py
+  ─────────────────────────
+
+  Helper Functions:
+    calculate_rsi(data, window=14)
+      - Computes RSI (Relative Strength Index) from price data
+      - Uses EMA-based calculation
+
+  Views:
+    class ClusterAnalysisView(APIView)       [GET ?portfolio_id=N|all]
+      - ML: KMeans clustering (n_clusters=3)
+      - Features: avg_return, volatility, sharpe ratio, RSI
+      - Preprocessing: StandardScaler
+      - Downloads 1yr data via yf.download()
+      - Computes annualized return, volatility, Sharpe ratio
+      - Labels clusters: "High return–High risk", "Moderate–Low risk", "Low return–High risk"
+      - Optional: ConvexHull boundary drawing (?draw_outline=true)
+      - Generates scatter plot (Return vs Volatility)
+      - Returns: { image_url, table_data[] }
+      - Libraries: sklearn.cluster.KMeans, sklearn.preprocessing.StandardScaler, scipy.spatial.ConvexHull
+      - Data Source: yfinance, Portfolio/Stock models
+
+  ─────────────────────────────────────────────────────────────────────────────
+  FILE: analysis/regression.py
+  ────────────────────────────
+
+  Views:
+    class StockPotentialView(APIView)        [GET ?portfolio_id=N|all&timeframe=1w|1m|3m|1y]
+      - ML: Linear Regression (stock-by-stock)
+      - TIMEFRAME_MAP: maps timeframe → (yf_period, pred_days, label)
+        '1w' → 3mo history, predict 5 days
+        '1m' → 6mo history, predict 21 days
+        '3m' → 1yr history, predict 63 days
+        '1y' → 2yr history, predict 252 days
+      - Features: sequential day index
+      - Adds realistic noise (historical volatility-based random walk)
+      - Returns chart_data: historical actuals + future trend predictions
+      - Returns: { timeframe_label, results[{ticker, current_price, predicted_price, expected_return, chart_data}] }
+      - Libraries: sklearn.linear_model.LinearRegression, numpy random
+      - Data Source: yfinance, Portfolio/Stock models
+
+  ─────────────────────────────────────────────────────────────────────────────
+  FILE: analysis/movement.py
+  ──────────────────────────
+
+  Views:
+    class MovementProbabilityView(APIView)   [GET ?portfolio_id=N|all]
+      - ML: Logistic Regression + LSTM (dual model)
+      - Downloads 2yr data via yf.download()
+      - Features (LogReg): past 5 days returns, StandardScaler
+      - Features (LSTM): 20-step sequence of scaled returns
+      - LSTM: Sequential(Input→LSTM(16)→Dropout(0.2)→Dense(1,sigmoid))
+        - Built ONCE outside loop, weights reset per ticker
+        - 3 epochs, batch_size=32
+      - Predicts probability of price going UP tomorrow
+      - Blends LogReg + LSTM probabilities
+      - Returns: { results[{ticker, current_price, lr_prob_up, lstm_prob_up, expected_return, is_up, chart_data}] }
+      - Libraries: sklearn.linear_model.LogisticRegression, tensorflow.keras (Sequential LSTM)
+      - Data Source: yfinance, Portfolio/Stock models
+      - NOTE: TensorFlow lazy-loaded, path C:\Users\Sahil\tf_lib added to sys.path
+
+  ─────────────────────────────────────────────────────────────────────────────
+  FILE: analysis/model_accuracy.py
+  ────────────────────────────────
+
+  Helper Functions:
+
+    fetch_hourly_data(ticker, target_date_str, target_hour_str, days=30)
+      - Downloads 30 days of hourly data from yfinance
+      - Handles timezone-naive index conversion
+      - Returns: (data, close_prices, target_dt)
+
+    prepare_features(close_prices, lookback=10)
+      - Creates feature matrix: 10 lagged values, MA(5), MA(10), return_1, return_3, volatility
+      - Target: next close price
+      - Returns: (X, y)
+
+    run_linear_regression(X_train, y_train, X_test)
+      - Standard Linear Regression prediction
+      - Returns: predicted price (float)
+
+    run_logistic_regression(X_train, y_train, X_test, current_price)
+      - Binary classification (up/down)
+      - Uses MinMaxScaler, max_iter=1000
+      - Converts direction + probability → predicted price
+      - Returns: predicted price (float)
+
+    _build_sequences(X, y, seq_length=10)
+      - Creates 3D sequences for LSTM/RNN/CNN
+      - Returns: (X_seq, y_seq)
+
+    run_lstm(X_train, y_train, X_test, seq_length=10)
+      - LSTM(32) → Dense(16) → Dense(1)
+      - MinMaxScaler, 20 epochs, batch_size=16
+      - Returns: predicted price (float)
+
+    run_rnn(X_train, y_train, X_test, seq_length=10)
+      - SimpleRNN(32) → Dense(16) → Dense(1)
+      - Same scaling/training as LSTM
+      - Returns: predicted price (float)
+
+    run_cnn(X_train, y_train, X_test, seq_length=10)
+      - Conv1D(32, k=3) → GlobalAvgPool → Dense(16) → Dense(1)
+      - Same scaling/training as LSTM
+      - Returns: predicted price (float)
+
+    run_arima(close_prices)
+      - ARIMA(5,1,0) using statsmodels
+      - Forecasts 1 step ahead
+      - Returns: predicted price (float)
+
+    calculate_accuracy_metrics(predictions_dict, actual_price)
+      - Computes MAE, RMSE, MAPE for each model
+      - Returns: dict {model_name: {mae, rmse, mape, prediction_error}}
+
+    rank_models(metrics)
+      - Sorted by RMSE ascending
+      - Returns: [{rank, model, rmse, mae, mape}]
+
+    analyze_stock(ticker, company_name, target_date_str, target_hour_str)
+      - Orchestrates all 6 models on a single stock
+      - Calls: fetch_hourly_data → prepare_features → run_* (6 models)
+      - Checks if actual price is available at target datetime
+      - Computes accuracy metrics if actual available
+      - Returns: {stock_ticker, stock_name, current_price, min/max, actual_price, models{}, accuracy_metrics}
+
+    analyze_portfolio_stocks(stocks_queryset, target_date, target_hour)
+      - Main entry point (called by ModelAccuracyView)
+      - Loops over all stocks → analyze_stock()
+      - Aggregates metrics across portfolio
+      - Computes model ranking
+      - Returns: {stocks[], model_ranking[], analysis{}}
+
+────────────────────────────────────────────────────────────────────────────────
+4.6  ml_models/ (Gold/Silver, Crypto & Time Series)
+────────────────────────────────────────────────────────────────────────────────
+
+  FILE: ml_models/views.py
+  ────────────────────────
+
+    class GoldSilverAnalysisView(APIView)           [GET, POST {interval}]
+      - Permission: AllowAny (no auth required)
+      - Delegates to: gold_silver_prediction.analyze_gold_silver_multivariate(interval)
+      - GET defaults to '1y', POST reads interval from body
+
+    class GoldSilverUnivariateAnalysisView(APIView) [GET, POST {interval}]
+      - Permission: AllowAny
+      - Delegates to: gold_silver_univariate_prediction.analyze_gold_silver_univariate(interval)
+
+    class CryptoAnalysisView(APIView)               [POST {symbol, interval, period, models[]}]
+      - Permission: AllowAny
+      - Delegates to: crypto_analysis.analyze_crypto(symbol, interval, period, models)
+
+    class TimeSeriesAnalysisView(APIView)            [POST {symbol, interval, period, models[]}]
+      - Permission: AllowAny
+      - Delegates to: time_series_prediction.analyze_time_series(symbol, interval, period, models)
+
+  ─────────────────────────────────────────────────────────────────────────────
+  FILE: ml_models/gold_silver_prediction.py
+  ─────────────────────────────────────────
+
+  Function: analyze_gold_silver_multivariate(interval='1y')
+    - ML: Multivariate Linear Regression for GLD and SLV
+    - Downloads entire history: yf.download(["GLD","SLV"], period="max")
+    - Resamples by interval: 1d/1mo/3mo/1y
+    - Features (6): TimeIndex, GLD_Lag_1, SLV_Lag_1, GLD_Lag_2, SLV_Lag_2, Gold_Silver_Ratio_Lag_1
+    - Trains 2 models: lr_gld, lr_slv
+    - Walk-forward prediction for future steps
+    - Explainability: SHAP (LinearExplainer) + LIME (LimeTabularExplainer)
+    - Returns: { historical[], predictions[], explanations{shap{}, lime{}} }
+    - Prediction steps by interval: 1d→30, 1mo→12, 3mo→8, 1y→10
+
+  ─────────────────────────────────────────────────────────────────────────────
+  FILE: ml_models/gold_silver_univariate_prediction.py
+  ────────────────────────────────────────────────────
+
+  Function: analyze_gold_silver_univariate(interval='1y')
+    - ML: Univariate Linear Regression (TimeIndex only)
+    - Same data source as multivariate
+    - Features: TimeIndex only
+    - Trains 2 models: lr_gld, lr_slv
+    - Direct prediction (no walk-forward needed)
+    - Explainability: SHAP + LIME (1 feature only)
+    - Returns: same structure as multivariate
+
+  ─────────────────────────────────────────────────────────────────────────────
+  FILE: ml_models/crypto_analysis.py
+  ──────────────────────────────────
+
+  Function: analyze_crypto(symbol, interval, period, models)
+    - Real-time crypto data analysis
+    - Downloads data: yf.download(symbol, period, interval)
+    - Supported models (computed on-demand, overlay on historical):
+      'sma'   → Simple Moving Average (20 periods)
+      'ema'   → Exponential Moving Average (20 periods)
+      'trend' → Linear Regression trendline
+    - NO future prediction — only overlays on historical data
+    - Returns: { symbol, interval, period, models_applied, data[] }
+
+  ─────────────────────────────────────────────────────────────────────────────
+  FILE: ml_models/time_series_prediction.py
+  ─────────────────────────────────────────
+
+  Helper Functions:
+    _fit_best_arima(y_hist)
+      - Grid search over 7 ARIMA orders, picks lowest AIC
+      - Fallback: ARIMA(1,1,1)
+
+  Function: analyze_time_series(symbol, interval, period, models)
+    - Fetches historical data, projects 15 periods into the future
+    - Supported models:
+      'linear'         → Linear Regression + volatility noise
+      'sma_extrapolate'→ SMA-drift random walk
+      'poly'           → Polynomial Regression (degree 2) + noise
+      'arima'          → ARIMA grid-search forecast + light noise
+    - Helper: _apply_realistic_noise(trend_values, vol_scale)
+      - Adds cumulative random walk noise scaled to historical volatility
+    - Returns: { symbol, interval, period, models_applied, data[] (hist + 15 future) }
+
+
+================================================================================
+5. CROSS-APP CONNECTION DIAGRAM
+================================================================================
+
+  ┌─────────────┐      imports       ┌──────────────┐
+  │  analysis/   │ ──────────────────►│  portfolios/ │
+  │  views.py    │   Portfolio model  │  models.py   │
+  │  cluster.py  │                    └──────────────┘
+  │  regression  │                           ▲
+  │  movement    │      imports       ┌──────┴───────┐
+  │  model_acc.  │ ──────────────────►│   stocks/    │
+  └──────┬───────┘   Stock model      │   models.py  │
+         │                            └──────────────┘
+         │
+         │ calls (imports)
+         ▼
+  ┌──────────────┐
+  │ model_accuracy│  analysis/model_accuracy.py
+  │  .py         │  (6 ML models run per stock)
+  └──────────────┘
+
+  ┌──────────────┐      imports       ┌─────────────────────────────────────┐
+  │ ml_models/   │ ──────────────────►│  gold_silver_prediction.py          │
+  │ views.py     │                    │  gold_silver_univariate_prediction.py│
+  │              │ ──────────────────►│  crypto_analysis.py                 │
+  │              │ ──────────────────►│  time_series_prediction.py          │
+  └──────────────┘                    └─────────────────────────────────────┘
+
+  All analysis/* views import:
+    - portfolios.models.Portfolio
+    - stocks.models.Stock
+    - yfinance (yf)
+    - matplotlib, numpy, sklearn
+
+  ml_models/* scripts import:
+    - yfinance, pandas, numpy, sklearn
+    - shap, lime (gold_silver scripts)
+    - statsmodels (time_series)
+    - NO Django model imports (standalone computations)
+
+
+================================================================================
+6. AUTHENTICATION FLOW
+================================================================================
+
+  1. Frontend calls POST /api/accounts/register/  → creates User
+  2. Frontend calls POST /api/accounts/login/     → returns {access, refresh} JWT
+  3. Frontend stores tokens in localStorage
+  4. api/axios.js interceptor attaches Bearer token to every request
+  5. Backend REST_FRAMEWORK default: IsAuthenticated (JWT required)
+  6. Exception: ml_models views use AllowAny (no auth needed)
+
+  Token Lifetime:
+    Access:  60 minutes
+    Refresh: 1 day
+
+
+================================================================================
+7. FRONTEND → BACKEND API MAPPING
+================================================================================
+
+  Frontend Component                    Backend Endpoint
+  ─────────────────────────────        ──────────────────────────────
+  pages/Login.jsx                   →  POST /api/accounts/login/
+  pages/Register.jsx                →  POST /api/accounts/register/
+  pages/Dashboard.jsx               →  GET  /api/portfolios/
+                                       POST /api/portfolios/
+                                       GET  /api/accounts/me/
+  pages/PortfolioDetail.jsx         →  GET  /api/portfolios/<id>/
+                                       GET  /api/stocks/?portfolio=<id>
+                                       POST /api/stocks/
+                                       GET  /api/stocks/search/?q=
+                                       GET  /api/analysis/price-chart/
+                                       GET  /api/analysis/pe-ratio/
+                                       GET  /api/analysis/volume-portfolio/
+                                       GET  /api/analysis/volume-chart/
+                                       GET  /api/analysis/discounted-value/
+
+  components/ClusteringAnalysis.jsx →  GET  /api/analysis/clustering/
+  components/StockPotentialAnalysis →  GET  /api/analysis/stock-potential/
+  components/MovementProbability    →  GET  /api/analysis/movement-probability/
+  components/ModelAccuracy.jsx      →  POST /api/analysis/model-accuracy/
+  components/GoldSilverAnalysis     →  POST /api/ml_models/gold-silver/
+  components/GoldSilverUnivariate   →  POST /api/ml_models/gold-silver-univariate/
+  components/CryptocurrencyAnalysis →  POST /api/ml_models/crypto/
+  components/TimeSeriesAnalysis     →  POST /api/ml_models/time-series/
+
+  Shared:
+  components/Navbar.jsx             →  (navigation only)
+  components/ProtectedRoute.jsx     →  (auth guard, checks localStorage token)
+  components/Spinner.jsx            →  (loading indicator)
+  components/PEChart.jsx            →  (chart sub-component)
+  context/AuthContext.jsx           →  (React Context for auth state)
+  api/axios.js                      →  (Axios instance, baseURL: http://127.0.0.1:8000)
+
+
+================================================================================
+8. ML MODELS SUMMARY TABLE
+================================================================================
+
+  Model                  | Used In                  | Library              | Purpose
+  ───────────────────────┼──────────────────────────┼──────────────────────┼──────────────────────
+  Linear Regression      | regression.py            | sklearn              | Stock price prediction (trend)
+  Linear Regression      | gold_silver_*.py         | sklearn              | Gold/Silver price forecasting
+  Linear Regression      | crypto_analysis.py       | sklearn              | Trendline overlay
+  Linear Regression      | time_series_prediction   | sklearn              | Future price extrapolation
+  Linear Regression      | model_accuracy.py        | sklearn              | 1-step hourly prediction
+  Logistic Regression    | movement.py              | sklearn              | Up/Down probability
+  Logistic Regression    | model_accuracy.py        | sklearn              | Direction classification
+  KMeans Clustering      | cluster.py               | sklearn              | Stock risk/return grouping
+  LSTM (Keras)           | movement.py              | tensorflow           | Up/Down probability
+  LSTM (Keras)           | model_accuracy.py        | tensorflow           | Price prediction
+  SimpleRNN (Keras)      | model_accuracy.py        | tensorflow           | Price prediction
+  1D CNN (Keras)         | model_accuracy.py        | tensorflow           | Price prediction
+  ARIMA                  | time_series_prediction   | statsmodels          | Time series forecast
+  ARIMA                  | model_accuracy.py        | statsmodels          | Hourly price forecast
+  Polynomial Regression  | time_series_prediction   | numpy (polyfit)      | Curved trend projection
+  SMA/EMA                | crypto_analysis.py       | pandas               | Moving average overlay
+  SMA Extrapolation      | time_series_prediction   | numpy                | SMA-drift random walk
+  SHAP                   | gold_silver_*.py         | shap                 | Feature importance
+  LIME                   | gold_silver_*.py         | lime                 | Instance explanation
+
+
+================================================================================
+9. DATA FLOW PATTERNS
+================================================================================
+
+  Pattern A: Portfolio-Based Analysis (Authenticated)
+  ───────────────────────────────────────────────────
+    User Request → JWT Auth Check → Load Portfolio → Get Stocks
+      → Download data from yfinance per ticker
+      → Run ML model / compute metrics
+      → Generate matplotlib chart → save to /media/
+      → Return JSON (data + image_url)
+
+    Used by: PERatioView, VolumePortfolioView, DiscountedValueView,
+             ClusterAnalysisView, StockPotentialView, MovementProbabilityView,
+             ModelAccuracyView
+
+  Pattern B: Single Ticker Analysis (Authenticated)
+  ──────────────────────────────────────────────────
+    User Request → JWT Auth Check → Read ticker from ?ticker=
+      → Download data from yfinance
+      → Generate chart → save to /media/
+      → Return JSON (data + image_url)
+
+    Used by: PriceGraphView, VolumeChartView
+
+  Pattern C: Standalone ML Analysis (Public, No Auth)
+  ────────────────────────────────────────────────────
+    User Request (AllowAny) → Read params from body
+      → Download data from yfinance
+      → Run ML model(s) on data
+      → Return JSON (historical + predictions + explanations)
+
+    Used by: GoldSilverAnalysisView, GoldSilverUnivariateAnalysisView,
+             CryptoAnalysisView, TimeSeriesAnalysisView
+
+
+================================================================================
+10. FILE STRUCTURE MAP
+================================================================================
+
+  ML_Stock_analysis/
+  ├── backend/
+  │   ├── config/
+  │   │   ├── settings.py          # Django config, JWT, CORS, apps
+  │   │   ├── urls.py              # Root URL dispatcher
+  │   │   ├── wsgi.py              # WSGI entry point
+  │   │   └── asgi.py              # ASGI entry point
+  │   │
+  │   ├── accounts/
+  │   │   ├── models.py            # (empty - uses Django User)
+  │   │   ├── serializers.py       # RegisterSerializer
+  │   │   ├── views.py             # RegisterView, MeView
+  │   │   └── urls.py              # register/, login/, refresh/, me/
+  │   │
+  │   ├── portfolios/
+  │   │   ├── models.py            # Portfolio model
+  │   │   ├── serializers.py       # PortfolioSerializer
+  │   │   ├── views.py             # PortfolioViewSet (CRUD)
+  │   │   └── urls.py              # DefaultRouter
+  │   │
+  │   ├── stocks/
+  │   │   ├── models.py            # Stock model (FK → Portfolio)
+  │   │   ├── serializers.py       # StockSerializer
+  │   │   ├── views.py             # StockViewSet, StockSearchView
+  │   │   └── urls.py              # DefaultRouter + search/
+  │   │
+  │   ├── analysis/
+  │   │   ├── views.py             # PriceGraph, PERatio, Volume, Discounted, ModelAccuracy
+  │   │   ├── cluster.py           # ClusterAnalysisView (KMeans)
+  │   │   ├── regression.py        # StockPotentialView (LinearReg)
+  │   │   ├── movement.py          # MovementProbabilityView (LogReg+LSTM)
+  │   │   ├── model_accuracy.py    # 6-model accuracy engine
+  │   │   └── urls.py              # 9 endpoints
+  │   │
+  │   ├── ml_models/
+  │   │   ├── views.py             # GoldSilver, Crypto, TimeSeries views
+  │   │   ├── gold_silver_prediction.py          # Multivariate LinReg + SHAP/LIME
+  │   │   ├── gold_silver_univariate_prediction.py # Univariate LinReg + SHAP/LIME
+  │   │   ├── crypto_analysis.py                 # SMA/EMA/Trend overlay
+  │   │   ├── time_series_prediction.py          # LinReg/SMA/Poly/ARIMA forecasting
+  │   │   └── urls.py              # 4 endpoints
+  │   │
+  │   ├── manage.py                # Django management
+  │   ├── db.sqlite3               # Database
+  │   ├── media/                   # Generated chart images
+  │   └── requirements.txt         # Python dependencies
+  │
+  └── frontend/
+      ├── src/
+      │   ├── App.jsx              # React Router (Login, Register, Dashboard, Portfolio)
+      │   ├── main.jsx             # React entry point
+      │   ├── api/axios.js         # Axios instance + JWT interceptor
+      │   ├── context/AuthContext.jsx # Auth state management
+      │   ├── pages/
+      │   │   ├── Login.jsx        # Login form
+      │   │   ├── Register.jsx     # Registration form
+      │   │   ├── Dashboard.jsx    # Portfolio list, create, overview
+      │   │   └── PortfolioDetail.jsx # Stock mgmt, charts, analysis tabs
+      │   └── components/
+      │       ├── Navbar.jsx             # Navigation bar
+      │       ├── ProtectedRoute.jsx     # Auth route guard
+      │       ├── Spinner.jsx            # Loading spinner
+      │       ├── PEChart.jsx            # PE ratio chart component
+      │       ├── ClusteringAnalysis.jsx # Clustering UI
+      │       ├── StockPotentialAnalysis.jsx # Stock potential UI
+      │       ├── MovementProbability.jsx    # Movement probability UI
+      │       ├── ModelAccuracy.jsx          # Model accuracy UI
+      │       ├── GoldSilverAnalysis.jsx     # Gold/Silver multivariate UI
+      │       ├── GoldSilverUnivariateAnalysis.jsx # Gold/Silver univariate UI
+      │       ├── CryptocurrencyAnalysis.jsx # Crypto analysis UI
+      │       └── TimeSeriesAnalysis.jsx     # Time series analysis UI
+      │
+      ├── index.html
+      ├── package.json
+      ├── vite.config.js
+      └── tailwind.config.js
+
+
+================================================================================
+END OF DOCUMENT
+================================================================================

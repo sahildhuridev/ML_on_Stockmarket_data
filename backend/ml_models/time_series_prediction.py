@@ -102,34 +102,66 @@ def analyze_time_series(symbol, interval, period, models):
     X_future = np.arange(len(data), len(data) + 15).reshape(-1, 1)
 
     predictions = {'Date': future_dates}
-    
+
+    # --- Volatility estimation for realistic price-action-like predictions ---
+    # Compute historical log-return volatility (std of daily returns)
+    returns = np.diff(np.log(y_hist[y_hist > 0]))  # log returns
+    hist_vol = np.std(returns) if len(returns) > 1 else 0.01
+    last_close = float(y_hist[-1])
+    rng = np.random.RandomState(42)  # seeded for reproducibility
+
+    def _apply_realistic_noise(trend_values, vol_scale=1.0):
+        """
+        Convert a smooth trend into a realistic price-action-like path.
+        Uses a cumulative random walk anchored to the trend so the overall
+        direction is preserved but the path wiggles like real prices.
+        """
+        n = len(trend_values)
+        # Generate per-step returns scaled to historical volatility
+        noise_returns = rng.normal(0, hist_vol * vol_scale, n)
+        # Build a cumulative noise path in price-space
+        cumulative_noise = np.cumsum(noise_returns) * last_close
+        # Blend: trend provides direction, noise provides texture
+        result = trend_values + cumulative_noise
+        # Ensure we don't get negative prices
+        result = np.maximum(result, trend_values * 0.5)
+        return result
+
     # Basic Linear Regression Model
     if 'linear' in models:
         lr = LinearRegression()
         lr.fit(X_hist, y_hist)
-        predictions['LR_Predict'] = lr.predict(X_future)
+        lr_trend = lr.predict(X_future)
+        predictions['LR_Predict'] = _apply_realistic_noise(lr_trend, vol_scale=0.8)
         
-        # Also plot it slightly backwards to connect properly to the last historical point if desired
-        # But for clean datasets we just append it
-        
-    # Simple Moving Average Extrapolation Model (Last N periods average projected forward flatly)
+    # Simple Moving Average Extrapolation Model — random walk with SMA drift
     if 'sma_extrapolate' in models:
         sma_val = y_hist[-20:].mean() if len(y_hist) >= 20 else y_hist.mean()
-        # Project flatly as a conservative baseline
-        predictions['SMA_Predict'] = np.full(15, sma_val)
+        # Random walk seeded at last close, with mean-reversion toward SMA
+        sma_path = np.zeros(15)
+        sma_path[0] = last_close
+        for i in range(1, 15):
+            drift = (sma_val - sma_path[i - 1]) * 0.05  # gentle pull toward SMA
+            step = drift + rng.normal(0, hist_vol * last_close * 0.8)
+            sma_path[i] = max(sma_path[i - 1] + step, sma_val * 0.5)
+        predictions['SMA_Predict'] = sma_path
         
     # Polynomial Regression (Degree 2) to capture curves
     if 'poly' in models:
-        # Simple math polyfit instead of sklearn pipeline for brevity
         coefs = np.polyfit(X_hist.flatten(), y_hist, 2)
         poly_fn = np.poly1d(coefs)
-        predictions['Poly_Predict'] = poly_fn(X_future.flatten())
+        poly_trend = poly_fn(X_future.flatten())
+        predictions['Poly_Predict'] = _apply_realistic_noise(poly_trend, vol_scale=0.9)
 
     # ARIMA Forecast (advanced, non-flat series behavior over horizons)
     if 'arima' in models and len(y_hist) >= 20:
         try:
             best_arima = _fit_best_arima(y_hist)
-            predictions['ARIMA_Predict'] = best_arima.forecast(steps=15)
+            arima_trend = best_arima.forecast(steps=15)
+            # ARIMA already has some variance, add lighter noise
+            predictions['ARIMA_Predict'] = _apply_realistic_noise(
+                np.array(arima_trend), vol_scale=0.5
+            )
         except Exception:
             # Silent fallback if ARIMA fails for edge symbols/windows
             pass

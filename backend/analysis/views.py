@@ -382,3 +382,39 @@ class DiscountedValueView(APIView):
             "image_url_discount": image_url_discount,
             "rows": rows,
         })
+
+
+class ModelAccuracyView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        portfolio_id = request.data.get("portfolio_id")
+        target_date = request.data.get("target_date")
+        target_hour = request.data.get("target_hour")
+
+        if not portfolio_id or not target_date or not target_hour:
+            return Response(
+                {"error": "portfolio_id, target_date, and target_hour are required"},
+                status=400,
+            )
+
+        try:
+            portfolio = Portfolio.objects.get(id=portfolio_id, user=request.user)
+        except Portfolio.DoesNotExist:
+            return Response({"error": "Invalid portfolio"}, status=404)
+
+        stocks = portfolio.stocks.all()
+        if not stocks.exists():
+            return Response(
+                {"error": "No stocks in this portfolio"}, status=400
+            )
+
+        from .model_accuracy import analyze_portfolio_stocks
+
+        try:
+            result = analyze_portfolio_stocks(stocks, target_date, target_hour)
+            return Response(result, status=200)
+        except Exception as e:
+            return Response(
+                {"error": "Analysis failed", "details": str(e)}, status=500
+            )

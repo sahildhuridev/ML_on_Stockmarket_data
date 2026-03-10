@@ -11,6 +11,7 @@ urlpatterns = [
     path('api/stocks/', include('stocks.urls')),
     path('api/analysis/', include('analysis.urls')),
     path('api/ml_models/', include('ml_models.urls')),
+    path('api/ml_flow/', include('ml_flow.urls')),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
