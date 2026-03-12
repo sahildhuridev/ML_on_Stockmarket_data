@@ -1,0 +1,22 @@
+artifact_path: file:///C:/Users/Sahil/Desktop/bizmetric/bizmetric_sahil_fsd/ML_Stock_analysis/backend/ml_flow/mlruns/863360724341303418/models/m-3f7be05c7a954c98ae8cd9276ef28370/artifacts
+flavors:
+  python_function:
+    data: data
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.tensorflow
+    python_version: 3.12.7
+  tensorflow:
+    code: null
+    data: data
+    keras_version: 2.20.0
+    model_type: keras
+    save_format: tf
+mlflow_version: 3.10.1
+model_id: m-3f7be05c7a954c98ae8cd9276ef28370
+model_size_bytes: 400170
+model_uuid: m-3f7be05c7a954c98ae8cd9276ef28370
+prompts: null
+run_id: 1e455d55adb7465c9e5dcaaac458bb20
+utc_time_created: '2026-03-11 18:04:48.544592'

@@ -1,0 +1,14 @@
+artifact_uri: file:///C:/Users/Sahil/Desktop/bizmetric/bizmetric_sahil_fsd/ML_Stock_analysis/backend/ml_flow/mlruns/255819264569409940/6274fbd7127647a19acffdebdd55c329/artifacts
+end_time: 1773252210620
+entry_point_name: ''
+experiment_id: '255819264569409940'
+lifecycle_stage: active
+run_id: 6274fbd7127647a19acffdebdd55c329
+run_name: LinearRegression_ADANIGREEN.NS
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1773252205422
+status: 3
+tags: []
+user_id: Sahil

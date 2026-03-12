@@ -1,0 +1,14 @@
+artifact_uri: file:///C:/Users/Sahil/Desktop/bizmetric/bizmetric_sahil_fsd/ML_Stock_analysis/backend/ml_flow/mlruns/425075867022372827/cef5f96aec9f4275b209fc6468a5c73a/artifacts
+end_time: 1773252264053
+entry_point_name: ''
+experiment_id: '425075867022372827'
+lifecycle_stage: active
+run_id: cef5f96aec9f4275b209fc6468a5c73a
+run_name: LSTM_ATGL.NS
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1773252249691
+status: 3
+tags: []
+user_id: Sahil

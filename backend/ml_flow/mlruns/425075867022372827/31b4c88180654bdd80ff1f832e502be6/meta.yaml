@@ -1,0 +1,14 @@
+artifact_uri: file:///C:/Users/Sahil/Desktop/bizmetric/bizmetric_sahil_fsd/ML_Stock_analysis/backend/ml_flow/mlruns/425075867022372827/31b4c88180654bdd80ff1f832e502be6/artifacts
+end_time: 1773228695656
+entry_point_name: ''
+experiment_id: '425075867022372827'
+lifecycle_stage: active
+run_id: 31b4c88180654bdd80ff1f832e502be6
+run_name: LinearRegression_ATGL.NS
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1773228689817
+status: 3
+tags: []
+user_id: Sahil

@@ -1,0 +1,14 @@
+artifact_uri: file:///C:/Users/Sahil/Desktop/bizmetric/bizmetric_sahil_fsd/ML_Stock_analysis/backend/ml_flow/mlruns/530022446800475157/0294b8aab5254b80a5228555d5705833/artifacts
+end_time: 1773252318816
+entry_point_name: ''
+experiment_id: '530022446800475157'
+lifecycle_stage: active
+run_id: 0294b8aab5254b80a5228555d5705833
+run_name: ARIMA_ADANIENSOL.NS
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1773252313422
+status: 3
+tags: []
+user_id: Sahil

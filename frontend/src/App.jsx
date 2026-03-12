@@ -5,6 +5,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import Landing from "./pages/Landing";
 import Dashboard from "./pages/Dashboard";
 import PortfolioDetail from "./pages/PortfolioDetail";
 
@@ -17,8 +18,10 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
 
+          <Route path="/" element={<Landing />} />
+          
           <Route
-            path="/"
+            path="/dashboard"
             element={
               <ProtectedRoute>
                 <Dashboard />

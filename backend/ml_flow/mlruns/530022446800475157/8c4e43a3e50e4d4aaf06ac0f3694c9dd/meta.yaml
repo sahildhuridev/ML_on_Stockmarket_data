@@ -1,0 +1,14 @@
+artifact_uri: file:///C:/Users/Sahil/Desktop/bizmetric/bizmetric_sahil_fsd/ML_Stock_analysis/backend/ml_flow/mlruns/530022446800475157/8c4e43a3e50e4d4aaf06ac0f3694c9dd/artifacts
+end_time: 1773228768164
+entry_point_name: ''
+experiment_id: '530022446800475157'
+lifecycle_stage: active
+run_id: 8c4e43a3e50e4d4aaf06ac0f3694c9dd
+run_name: LSTM_ADANIENSOL.NS
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1773228757507
+status: 3
+tags: []
+user_id: Sahil

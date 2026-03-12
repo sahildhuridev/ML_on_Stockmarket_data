@@ -1,0 +1,23 @@
+artifact_path: file:///C:/Users/Sahil/Desktop/bizmetric/bizmetric_sahil_fsd/ML_Stock_analysis/backend/ml_flow/mlruns/863360724341303418/models/m-602365e52c5e49b396b7172c93d57daf/artifacts
+flavors:
+  python_function:
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.sklearn
+    model_path: model.pkl
+    predict_fn: predict
+    python_version: 3.12.7
+  sklearn:
+    code: null
+    pickled_model: model.pkl
+    serialization_format: cloudpickle
+    sklearn_version: 1.8.0
+    skops_trusted_types: null
+mlflow_version: 3.10.1
+model_id: m-602365e52c5e49b396b7172c93d57daf
+model_size_bytes: 499
+model_uuid: m-602365e52c5e49b396b7172c93d57daf
+prompts: null
+run_id: de841385817a4eba9c8cbc9f5e644b02
+utc_time_created: '2026-03-11 18:04:37.760374'

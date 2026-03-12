@@ -1,0 +1,12 @@
+{
+  "model_type": "LinearRegression",
+  "features": [
+    "MA7",
+    "MA21",
+    "RSI",
+    "daily_return",
+    "volatility"
+  ],
+  "train_size": 61,
+  "test_size": 16
+}

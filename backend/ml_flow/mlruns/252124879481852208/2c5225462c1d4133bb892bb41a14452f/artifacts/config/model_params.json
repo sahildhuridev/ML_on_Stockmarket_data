@@ -1,0 +1,9 @@
+{
+  "model_type": "LSTM",
+  "sequence_length": 10,
+  "epochs": 10,
+  "batch_size": 16,
+  "lstm_units": 50,
+  "train_size": 135,
+  "test_size": 37
+}

@@ -1,0 +1,20 @@
+artifact_path: file:///C:/Users/Sahil/Desktop/bizmetric/bizmetric_sahil_fsd/ML_Stock_analysis/backend/ml_flow/mlruns/252124879481852208/models/m-1f6d5fd627b044018fc55f7e577d25b6/artifacts
+flavors:
+  python_function:
+    data: model.statsmodels
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.statsmodels
+    python_version: 3.12.7
+  statsmodels:
+    code: null
+    data: model.statsmodels
+    statsmodels_version: 0.14.6
+mlflow_version: 3.10.1
+model_id: m-1f6d5fd627b044018fc55f7e577d25b6
+model_size_bytes: 457376
+model_uuid: m-1f6d5fd627b044018fc55f7e577d25b6
+prompts: null
+run_id: 8b9fc671d7f54a54934fafdd0ad40170
+utc_time_created: '2026-03-11 11:33:00.047431'
