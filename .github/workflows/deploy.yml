@@ -18,4 +18,14 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
             cd ~/projects/ML_on_Stockmarket_data
+            
+            echo "Pulling latest code..."
             git pull origin master
+
+            echo "Installing dependencies..."
+            cd backend
+            source sahil1_venv/bin/activate
+            pip install -r requirements.txt
+
+            echo "Restarting ML backend..."
+            pm2 restart sahil-ml-backend --update-env
