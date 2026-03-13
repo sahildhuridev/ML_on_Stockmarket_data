@@ -5,6 +5,7 @@ export default defineConfig({
   plugins: [react()],
   server: {
     host: true,
-    allowedHosts: ['sahildhuridev.duckdns.org']
+    port: 5173,
+    allowedHosts: "all"
   }
 })
