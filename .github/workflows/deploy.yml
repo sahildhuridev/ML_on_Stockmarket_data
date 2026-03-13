@@ -37,4 +37,3 @@ jobs:
             pm2 restart sahil-ml-frontend
 
             echo "Deployment completed successfully!"
-```
