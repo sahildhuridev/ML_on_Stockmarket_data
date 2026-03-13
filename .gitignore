@@ -1,5 +1,5 @@
-# venv/
-#sahil2_venv/
-# sahil_venv/
+venv/
+sahil2_venv/
+sahil_venv/
 # __pycache__/
 # *.pyc
