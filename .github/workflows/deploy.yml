@@ -1,3 +1,4 @@
+```yaml
 name: Deploy to Azure VM
 
 on:
@@ -17,18 +18,24 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
+            echo "Starting deployment..."
+
             cd ~/projects/ML_on_Stockmarket_data
-            
-            echo "Pulling latest code..."
-            git pull origin main
-            
-            echo "Installing dependencies..."
+
+            echo "Fetching latest code from GitHub..."
+            git fetch origin
+            git reset --hard origin/main
+
+            echo "Installing backend dependencies..."
             cd backend
             source sahil1_venv/bin/activate
             pip install -r requirements.txt
-            
-            echo "Restarting ML backend..."
+
+            echo "Restarting backend..."
             pm2 restart sahil-ml-backend --update-env
-            
+
             echo "Restarting frontend..."
             pm2 restart sahil-ml-frontend
+
+            echo "Deployment completed successfully!"
+```
