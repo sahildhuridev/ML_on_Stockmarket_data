@@ -256,7 +256,7 @@ const CryptocurrencyAnalysis = () => {
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
 
                 {/* Search Input Area */}
-                <div className="flex items-center space-x-2 relative w-64 z-50">
+                <div className="relative z-50 flex w-full flex-col gap-2 sm:w-64 sm:flex-row sm:items-center sm:space-x-2">
                     <div className="bg-[#131722] border border-[#2b2b43] rounded px-3 py-1.5 focus-within:border-[#2962FF] transition-colors w-full flex items-center">
                         <input
                             className="bg-transparent text-sm text-[#d1d4dc] outline-none uppercase font-bold w-full"
@@ -308,7 +308,7 @@ const CryptocurrencyAnalysis = () => {
                 </button>
             </div>
 
-            <div className="flex bg-[#131722] border border-[#2b2b43] rounded overflow-hidden">
+            <div className="flex overflow-x-auto rounded border border-[#2b2b43] bg-[#131722]">
                 {[{ l: '1m', p: '1d' }, { l: '1h', p: '5d' }, { l: '1d', p: '6mo' }, { l: '1wk', p: '2y' }].map(tf => (
                     <button
                         key={tf.l}
@@ -321,7 +321,7 @@ const CryptocurrencyAnalysis = () => {
                 ))}
             </div>
 
-            <div className="flex items-center space-x-4 bg-[#131722] p-2 rounded border border-[#2b2b43]">
+            <div className="flex flex-wrap items-center gap-3 rounded border border-[#2b2b43] bg-[#131722] p-2">
                 <h4 className="text-xs text-[#787b86] uppercase font-bold mr-2">Models:</h4>
 
                 <label className="flex items-center space-x-1.5 cursor-pointer text-sm">

@@ -165,7 +165,7 @@ const PortfolioDetail = () => {
   }, []);
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       <div className="mb-4">
         <Link to="/" className="text-blue-500 hover:text-blue-700 hover:underline flex w-max items-center gap-1 font-medium">
           <span className="text-xl leading-[0] mb-1">&larr;</span> Back to Dashboard
@@ -339,7 +339,7 @@ const PortfolioDetail = () => {
       )}
 
       {/* ➕ Add Stock Form */}
-      <div className="mb-6 mt-8 relative max-w-md">
+      <div className="mb-6 mt-8 relative w-full max-w-md">
         <h3 className="font-bold mb-2 text-gray-800">Add Stock to Portfolio</h3>
         <input
           type="text"
@@ -400,8 +400,8 @@ const StockCard = ({ stock, setLoading, onRemove }) => {
 
   return (
     <div className="bg-white text-gray-900 p-4 shadow rounded mb-4">
-      <div className="flex justify-between items-start">
-        <h3 className="font-bold text-lg">{stock.company_name} <span className="text-gray-500 text-sm ml-2 font-normal">({stock.ticker})</span></h3>
+      <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-start">
+        <h3 className="font-bold text-lg break-words">{stock.company_name} <span className="text-gray-500 text-sm ml-2 font-normal">({stock.ticker})</span></h3>
         <button onClick={onRemove} className="text-red-500 hover:text-red-700 transition" title="Remove Stock">
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
             <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
@@ -409,7 +409,7 @@ const StockCard = ({ stock, setLoading, onRemove }) => {
         </button>
       </div>
 
-      <div className="flex gap-2 mt-3">
+      <div className="flex flex-wrap gap-2 mt-3">
         <button
           onClick={loadChart}
           className="bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600 transition shadow-sm"

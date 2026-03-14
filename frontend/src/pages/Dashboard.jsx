@@ -35,10 +35,10 @@ const Dashboard = () => {
   }, []);
 
   return (
-    <div className="flex h-screen w-full bg-[#131722] text-[#d1d4dc] overflow-hidden font-sans">
+    <div className="flex min-h-screen w-full flex-col bg-[#131722] text-[#d1d4dc] font-sans lg:h-screen lg:flex-row lg:overflow-hidden">
 
       {/* LEFT SIDEBAR (Navigation & Portfolios) */}
-      <aside className="w-64 flex-shrink-0 bg-[#1e222d] border-r border-[#2b2b43] flex flex-col z-10">
+      <aside className="w-full flex-shrink-0 bg-[#1e222d] border-b border-[#2b2b43] flex flex-col z-10 lg:w-64 lg:border-b-0 lg:border-r">
 
         {/* Brand Header */}
         <div className="p-5 border-b border-[#2b2b43] flex items-center space-x-3">
@@ -49,10 +49,10 @@ const Dashboard = () => {
         </div>
 
         {/* Global Nav */}
-        <nav className="p-3 space-y-1">
+        <nav className="flex gap-2 overflow-x-auto p-3 lg:block lg:space-y-1">
           <button
             onClick={() => setActiveTab('overview')}
-            className={`w-full flex items-center space-x-3 px-3 py-2 rounded-md transition-colors ${activeTab === 'overview' ? 'bg-[#2962FF] text-white' : 'text-[#787b86] hover:bg-[#2a2e39] hover:text-[#d1d4dc]'}`}
+            className={`flex min-w-max items-center space-x-3 px-3 py-2 rounded-md transition-colors lg:w-full ${activeTab === 'overview' ? 'bg-[#2962FF] text-white' : 'text-[#787b86] hover:bg-[#2a2e39] hover:text-[#d1d4dc]'}`}
           >
             <Compass size={18} />
             <span className="font-medium text-sm">Market Overview</span>
@@ -60,7 +60,7 @@ const Dashboard = () => {
 
           <button
             onClick={() => setActiveTab('analysis')}
-            className={`w-full flex items-center space-x-3 px-3 py-2 rounded-md transition-colors ${activeTab === 'analysis' ? 'bg-[#2962FF] text-white' : 'text-[#787b86] hover:bg-[#2a2e39] hover:text-[#d1d4dc]'}`}
+            className={`flex min-w-max items-center space-x-3 px-3 py-2 rounded-md transition-colors lg:w-full ${activeTab === 'analysis' ? 'bg-[#2962FF] text-white' : 'text-[#787b86] hover:bg-[#2a2e39] hover:text-[#d1d4dc]'}`}
           >
             <TrendingUp size={18} />
             <span className="font-medium text-sm">ML Projections</span>
@@ -68,7 +68,7 @@ const Dashboard = () => {
 
           <button
             onClick={() => setActiveTab('beforeLive')}
-            className={`w-full flex items-center space-x-3 px-3 py-2 rounded-md transition-colors ${activeTab === 'beforeLive' ? 'bg-[#2962FF] text-white' : 'text-[#787b86] hover:bg-[#2a2e39] hover:text-[#d1d4dc]'}`}
+            className={`flex min-w-max items-center space-x-3 px-3 py-2 rounded-md transition-colors lg:w-full ${activeTab === 'beforeLive' ? 'bg-[#2962FF] text-white' : 'text-[#787b86] hover:bg-[#2a2e39] hover:text-[#d1d4dc]'}`}
           >
             <Target size={18} />
             <span className="font-medium text-sm">Before Live Market</span>
@@ -76,7 +76,7 @@ const Dashboard = () => {
 
           <button
             onClick={() => setActiveTab('mlflow')}
-            className={`w-full flex items-center space-x-3 px-3 py-2 rounded-md transition-colors ${activeTab === 'mlflow' ? 'bg-[#2962FF] text-white' : 'text-[#787b86] hover:bg-[#2a2e39] hover:text-[#d1d4dc]'}`}
+            className={`flex min-w-max items-center space-x-3 px-3 py-2 rounded-md transition-colors lg:w-full ${activeTab === 'mlflow' ? 'bg-[#2962FF] text-white' : 'text-[#787b86] hover:bg-[#2a2e39] hover:text-[#d1d4dc]'}`}
           >
             <Cpu size={18} />
             <span className="font-medium text-sm">ML Workflow</span>
@@ -84,7 +84,7 @@ const Dashboard = () => {
 
           <button
             onClick={() => setActiveTab('crypto')}
-            className={`w-full flex items-center space-x-3 px-3 py-2 rounded-md transition-colors ${activeTab === 'crypto' ? 'bg-[#2962FF] text-white' : 'text-[#787b86] hover:bg-[#2a2e39] hover:text-[#d1d4dc]'}`}
+            className={`flex min-w-max items-center space-x-3 px-3 py-2 rounded-md transition-colors lg:w-full ${activeTab === 'crypto' ? 'bg-[#2962FF] text-white' : 'text-[#787b86] hover:bg-[#2a2e39] hover:text-[#d1d4dc]'}`}
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
             <span className="font-medium text-sm flex-1 text-left">Live Market</span>
@@ -93,7 +93,7 @@ const Dashboard = () => {
         </nav>
 
         {/* Portfolios Section */}
-        <div className="flex-1 overflow-y-auto px-3 py-4 mt-2">
+        <div className="max-h-64 overflow-y-auto px-3 py-4 mt-2 lg:max-h-none lg:flex-1">
           <div className="flex items-center justify-between px-3 mb-2 text-xs font-semibold text-[#5d606b] uppercase tracking-wider">
             <span>Watchlists & Portfolios</span>
             <Folders size={14} />
@@ -136,26 +136,26 @@ const Dashboard = () => {
         </div>
 
         {/* User / Settings Footer */}
-        <div className="p-4 border-t border-[#2b2b43] text-sm text-[#787b86] flex items-center space-x-2 hover:text-[#d1d4dc] cursor-pointer transition-colors">
+        <div className="hidden p-4 border-t border-[#2b2b43] text-sm text-[#787b86] items-center space-x-2 hover:text-[#d1d4dc] cursor-pointer transition-colors lg:flex">
           <Settings size={16} />
           <span>Settings</span>
         </div>
       </aside>
 
       {/* MAIN CONTENT STAGE */}
-      <main className="flex-1 flex flex-col h-screen overflow-hidden bg-[#131722]">
+      <main className="flex-1 min-w-0 flex flex-col bg-[#131722] lg:h-screen lg:overflow-hidden">
 
         {/* Top Action Bar */}
-        <header className="h-14 border-b border-[#2b2b43] bg-[#1e222d] flex items-center justify-between px-6 flex-shrink-0 z-20">
-          <div className="flex items-center space-x-4 flex-1">
-            <h2 className="text-lg font-semibold text-white">
+        <header className="border-b border-[#2b2b43] bg-[#1e222d] flex flex-col items-start gap-3 px-4 py-3 sm:px-6 lg:h-14 lg:flex-row lg:items-center lg:justify-between lg:py-0 flex-shrink-0 z-20">
+          <div className="flex min-w-0 items-center space-x-3 sm:space-x-4 flex-1">
+            <h2 className="text-base sm:text-lg font-semibold text-white break-words">
               {activeTab === 'overview' ? 'Global Markets Overview' :
                 activeTab === 'analysis' ? 'Machine Learning Projections' :
                   activeTab === 'beforeLive' ? 'Before Live Market — Model Accuracy' :
                     activeTab === 'mlflow' ? 'ML Workflow Pipeline' :
                       'Live Market'}
             </h2>
-            <div className="h-4 w-px bg-[#2b2b43] mx-2"></div>
+            <div className="hidden md:block h-4 w-px bg-[#2b2b43] mx-2"></div>
             <div className="hidden md:flex items-center bg-[#131722] border border-[#2b2b43] rounded px-3 py-1.5 w-64 focus-within:border-[#2962FF] transition-colors">
               <svg className="w-4 h-4 text-[#787b86] mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
               <input
@@ -166,12 +166,12 @@ const Dashboard = () => {
             </div>
           </div>
 
-          <div className="flex items-center space-x-4">
+          <div className="flex w-full flex-wrap items-center gap-3 sm:gap-4 lg:w-auto lg:justify-end">
             <span className="text-xs text-[#089981] flex items-center bg-[rgba(8,153,129,0.1)] px-3 py-1.5 rounded-full border border-[rgba(8,153,129,0.2)] font-medium">
               <span className="w-1.5 h-1.5 rounded-full bg-[#089981] mr-2 animate-pulse"></span>
               Market Open
             </span>
-            <div className="h-4 w-px bg-[#2b2b43] mx-1"></div>
+            <div className="hidden sm:block h-4 w-px bg-[#2b2b43] mx-1"></div>
 
             <button className="text-[#787b86] hover:text-white transition-colors p-1.5 rounded hover:bg-[#2a2e39]">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
@@ -187,7 +187,7 @@ const Dashboard = () => {
         </header>
 
         {/* Scrolling Content Area */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        <div className="flex-1 overflow-y-auto p-3 sm:p-4 lg:p-6 space-y-6">
           {activeTab === 'overview' && (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
               <GoldSilverUnivariateAnalysis />

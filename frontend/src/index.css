@@ -56,4 +56,13 @@
   ::-webkit-scrollbar-thumb:hover {
     background: var(--text-secondary);
   }
+
+  #root {
+    min-height: 100vh;
+  }
+
+  img {
+    max-width: 100%;
+    height: auto;
+  }
 }

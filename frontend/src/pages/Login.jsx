@@ -14,8 +14,8 @@ const Login = () => {
   };
 
   return (
-    <div className="flex justify-center mt-20">
-      <form onSubmit={handleSubmit} className="bg-white text-gray-900 p-6 shadow rounded w-80">
+    <div className="flex justify-center px-4 py-8 sm:py-16">
+      <form onSubmit={handleSubmit} className="bg-white text-gray-900 p-6 shadow rounded w-full max-w-sm">
         <h2 className="text-xl mb-4">Login</h2>
         <input
           type="text"

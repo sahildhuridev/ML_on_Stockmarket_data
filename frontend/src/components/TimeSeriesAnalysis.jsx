@@ -278,7 +278,7 @@ const TimeSeriesAnalysis = () => {
 
     return (
         <div className="bg-[#1e222d] text-white p-6 shadow-xl rounded-lg border border-[#2b2b43] mt-6">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex flex-col gap-3 mb-4 md:flex-row md:items-center md:justify-between">
                 <h2 className="text-xl font-bold">Price Analysis by Time Series Model (15 Periods Ahead)</h2>
                 <button
                     onClick={() => setIsCollapsed(prev => !prev)}
@@ -294,7 +294,7 @@ const TimeSeriesAnalysis = () => {
                     {/* Control Panel */}
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
 
-                        <div className="flex items-center space-x-2 relative w-72 z-20">
+                        <div className="relative z-20 flex w-full flex-col gap-2 sm:w-72 sm:flex-row sm:items-center sm:space-x-2">
                             <div className="bg-[#131722] border border-[#2b2b43] rounded px-3 py-1.5 focus-within:border-[#2962FF] transition-colors w-full">
                                 <input
                                     className="bg-transparent text-sm text-white outline-none uppercase font-bold w-full"
@@ -334,7 +334,7 @@ const TimeSeriesAnalysis = () => {
                             )}
                         </div>
 
-                        <div className="flex bg-[#131722] border border-[#2b2b43] rounded overflow-hidden">
+                        <div className="flex w-full overflow-x-auto rounded border border-[#2b2b43] bg-[#131722] sm:w-auto">
                             {[
                                 { l: '1h', p: '5d' },
                                 { l: '1d', p: '1y' },
@@ -351,7 +351,7 @@ const TimeSeriesAnalysis = () => {
                             ))}
                         </div>
 
-                        <div className="flex items-center space-x-4 bg-[#131722] p-2 rounded border border-[#2b2b43]">
+                        <div className="flex w-full flex-wrap items-center gap-3 rounded border border-[#2b2b43] bg-[#131722] p-2 md:w-auto">
                             <h4 className="text-xs text-[#787b86] uppercase font-bold mr-2">Models:</h4>
 
                             <label className="flex items-center space-x-1.5 cursor-pointer text-sm">

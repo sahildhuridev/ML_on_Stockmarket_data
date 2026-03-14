@@ -185,9 +185,9 @@ const GoldSilverAnalysis = () => {
 
     return (
         <div className="bg-white text-gray-900 p-6 shadow rounded mb-8">
-            <div className="flex justify-between items-center mb-4">
+            <div className="flex flex-col gap-4 mb-4 md:flex-row md:items-center md:justify-between">
                 <h2 className="text-xl font-bold">Gold and Silver Correlation Analysis (Multivariate)</h2>
-                <div className="flex items-center space-x-4">
+                <div className="flex flex-wrap items-center gap-3 md:justify-end">
                     {/* Timeframe Selectors */}
                     {isOpen && (
                         <div className="flex bg-gray-100 rounded border border-gray-300 overflow-hidden text-sm">
@@ -213,7 +213,7 @@ const GoldSilverAnalysis = () => {
 
             {isOpen && (
                 <>
-                    <div className="flex gap-4 mb-6">
+                    <div className="flex flex-wrap gap-3 mb-6">
                         <button
                             className={`px-4 py-2 rounded font-semibold ${activeView === "gold" ? "bg-yellow-500 text-white" : "bg-gray-200 text-gray-700 hover:bg-gray-300"}`}
                             onClick={() => setActiveView("gold")}

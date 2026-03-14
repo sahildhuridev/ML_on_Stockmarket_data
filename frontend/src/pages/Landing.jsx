@@ -59,7 +59,7 @@ const Landing = () => {
   return (
     <div className="min-h-screen bg-[#0a0c10] text-white selection:bg-blue-500/30">
       {/* Hero Section */}
-      <section className="relative h-[90vh] min-h-[600px] flex items-center justify-center overflow-hidden">
+      <section className="relative min-h-[70vh] sm:min-h-[600px] flex items-center justify-center overflow-hidden">
         {/* Background Image with Overlay */}
         <div className="absolute inset-0 z-0">
           <img 
@@ -72,7 +72,7 @@ const Landing = () => {
 
         {/* Hero Content */}
         <motion.div 
-          className="relative z-10 max-w-5xl px-6 text-center"
+          className="relative z-10 max-w-5xl px-4 sm:px-6 text-center"
           initial="hidden"
           animate="visible"
           variants={containerVariants}
@@ -84,7 +84,7 @@ const Landing = () => {
           
           <motion.h1 
             variants={itemVariants}
-            className="text-5xl md:text-7xl font-bold mb-6 tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-white to-gray-500"
+            className="text-4xl sm:text-5xl md:text-7xl font-bold mb-6 tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-white to-gray-500"
           >
             Predict the Future of <br /> 
             <span className="text-blue-500">Stock Markets</span>
@@ -125,7 +125,7 @@ const Landing = () => {
       </section>
 
       {/* Features Section */}
-      <section className="py-24 px-6 max-w-7xl mx-auto relative z-10 bg-[#0a0c10]">
+      <section className="py-16 sm:py-24 px-4 sm:px-6 max-w-7xl mx-auto relative z-10 bg-[#0a0c10]">
         <div className="text-center mb-16">
           <h2 className="text-3xl md:text-4xl font-bold mb-4">Sophisticated Engine</h2>
           <p className="text-gray-400 max-w-2xl mx-auto">
@@ -157,8 +157,8 @@ const Landing = () => {
       </section>
 
       {/* Footer / CTA Section */}
-      <section className="py-24 px-6 border-t border-white/5 bg-[#0a0c10]">
-        <div className="max-w-4xl mx-auto p-12 rounded-3xl bg-gradient-to-br from-blue-600 to-indigo-700 relative overflow-hidden text-center shadow-[0_0_50px_rgba(37,99,235,0.2)]">
+      <section className="py-16 sm:py-24 px-4 sm:px-6 border-t border-white/5 bg-[#0a0c10]">
+        <div className="max-w-4xl mx-auto p-6 sm:p-12 rounded-3xl bg-gradient-to-br from-blue-600 to-indigo-700 relative overflow-hidden text-center shadow-[0_0_50px_rgba(37,99,235,0.2)]">
           <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 blur-3xl -translate-y-1/2 translate-x-1/2 rounded-full"></div>
           <div className="relative z-10">
             <h2 className="text-3xl md:text-5xl font-bold mb-6 italic">Stay Ahead of the Market Curve</h2>
@@ -174,8 +174,8 @@ const Landing = () => {
           </div>
         </div>
         
-        <div className="mt-24 text-center text-gray-500 text-sm">
-          <div className="flex justify-center gap-8 mb-8">
+        <div className="mt-16 sm:mt-24 text-center text-gray-500 text-sm">
+          <div className="flex flex-wrap justify-center gap-4 sm:gap-8 mb-8">
             <span className="hover:text-gray-300 transition-colors cursor-pointer">Terms of Service</span>
             <span className="hover:text-gray-300 transition-colors cursor-pointer">Privacy Policy</span>
             <span className="hover:text-gray-300 transition-colors cursor-pointer">Support</span>
