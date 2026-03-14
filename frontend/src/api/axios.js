@@ -1,7 +1,11 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "http://4.193.186.30:8001",
+  // we are changing it to /api as we are using https
+  //baseURL: "https://ml.sahildhuri.co.in",
+  baseURL: "/api",
+  //baseURL: "http://4.193.186.30:8001",
+
 });
 
 api.interceptors.request.use((config) => {
