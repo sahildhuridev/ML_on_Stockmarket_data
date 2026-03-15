@@ -200,3 +200,51 @@ class ForecastPrediction(models.Model):
     def __str__(self):
         target = self.forecast_request.resolved_target_datetime or self.forecast_request.target_datetime
         return f"{self.ticker}: {self.predicted_price:.2f} @ {target}"
+
+
+class SingleStockForecast(models.Model):
+    """Stores exact date/time forecasts for a single searched stock."""
+
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('resolved', 'Resolved'),
+        ('failed', 'Failed'),
+        ('expired', 'Expired'),
+    ]
+
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='single_stock_forecasts',
+    )
+    ticker = models.CharField(max_length=20)
+    company_name = models.CharField(max_length=255, blank=True)
+    interval = models.CharField(max_length=10, default='1h')
+    training_days = models.IntegerField(default=30)
+    target_datetime = models.DateTimeField()
+    resolved_target_datetime = models.DateTimeField(null=True, blank=True)
+    requested_at = models.DateTimeField(auto_now_add=True)
+    resolved_at = models.DateTimeField(null=True, blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    current_price = models.FloatField(null=True, blank=True)
+    predicted_price = models.FloatField(null=True, blank=True)
+    best_model = models.CharField(max_length=100, blank=True)
+    model_predictions = models.JSONField(default=dict, blank=True)
+    model_metrics = models.JSONField(default=dict, blank=True)
+    steps_ahead = models.IntegerField(default=1)
+    actual_price = models.FloatField(null=True, blank=True)
+    actual_price_timestamp = models.DateTimeField(null=True, blank=True)
+    absolute_error = models.FloatField(null=True, blank=True)
+    pct_error = models.FloatField(null=True, blank=True)
+    direction_match = models.BooleanField(null=True, blank=True)
+    results_json = models.JSONField(default=dict, blank=True)
+    error_message = models.TextField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-requested_at']
+
+    def __str__(self):
+        target = self.resolved_target_datetime or self.target_datetime
+        return f"{self.ticker}: {self.predicted_price or 0:.2f} @ {target}"

@@ -7,6 +7,7 @@ from .models import (
     HourlyPrediction,
     ForecastRequest,
     ForecastPrediction,
+    SingleStockForecast,
 )
 
 
@@ -81,6 +82,38 @@ class RunForecastInputSerializer(serializers.Serializer):
             raise serializers.ValidationError({"ticker": "Ticker is required for single stock forecasts."})
         attrs['ticker'] = ticker
         return attrs
+
+
+class SingleStockForecastSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SingleStockForecast
+        fields = [
+            'id', 'ticker', 'company_name', 'interval', 'training_days',
+            'target_datetime', 'resolved_target_datetime', 'requested_at',
+            'resolved_at', 'status', 'current_price', 'predicted_price',
+            'best_model', 'model_predictions', 'model_metrics', 'steps_ahead',
+            'actual_price', 'actual_price_timestamp', 'absolute_error',
+            'pct_error', 'direction_match', 'results_json', 'error_message',
+        ]
+
+
+class RunSingleStockForecastInputSerializer(serializers.Serializer):
+    ticker = serializers.CharField(max_length=20)
+    company_name = serializers.CharField(max_length=255, required=False, allow_blank=True)
+    interval = serializers.CharField(default='1h', required=False)
+    training_days = serializers.IntegerField(default=30, required=False, min_value=7, max_value=365)
+    target_datetime = serializers.DateTimeField()
+
+    def validate_target_datetime(self, value):
+        if value <= timezone.now():
+            raise serializers.ValidationError("Target date/time must be in the future.")
+        return value
+
+    def validate_ticker(self, value):
+        ticker = (value or '').strip().upper()
+        if not ticker:
+            raise serializers.ValidationError("Ticker is required.")
+        return ticker
 
 
 class PipelineRunSerializer(serializers.ModelSerializer):

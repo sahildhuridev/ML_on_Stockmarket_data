@@ -21,6 +21,7 @@ from ml_flow.models import (
     HourlyPrediction,
     ForecastRequest,
     ForecastPrediction,
+    SingleStockForecast,
 )
 from ml_flow.pipeline.ingestion.data_ingestion import DataIngestion
 from ml_flow.pipeline.validation.data_validation import DataValidator
@@ -235,6 +236,66 @@ class MLPipelineRunner:
         return forecast_request
 
     @staticmethod
+    def create_single_stock_forecast(
+        ticker: str,
+        company_name: str,
+        target_datetime: datetime,
+        interval: str = "1h",
+        training_days: int = 30,
+        user=None,
+    ) -> SingleStockForecast:
+        """Create an exact datetime forecast for one stock."""
+        target_datetime = MLPipelineRunner._normalize_datetime(target_datetime)
+        resolved_target_datetime, alignment_note = MLPipelineRunner._align_target_datetime(
+            target_datetime, interval
+        )
+
+        result = MLPipelineRunner._forecast_single_stock(
+            ticker=ticker,
+            period=f"{training_days}d",
+            interval=interval,
+            training_days=training_days,
+            target_datetime=resolved_target_datetime,
+        )
+
+        current_price = result["current_price"]
+        predicted_price = result["predicted_price"]
+        forecast = SingleStockForecast.objects.create(
+            created_by=user,
+            ticker=ticker.upper(),
+            company_name=company_name or ticker.upper(),
+            interval=interval,
+            training_days=training_days,
+            target_datetime=target_datetime,
+            resolved_target_datetime=resolved_target_datetime,
+            status="pending",
+            current_price=current_price,
+            predicted_price=predicted_price,
+            best_model=result["best_model"],
+            model_predictions=result["per_model_predictions"],
+            model_metrics=result["all_model_metrics"],
+            steps_ahead=result["steps_ahead"],
+            results_json={
+                "alignment_note": alignment_note,
+                "summary": {
+                    "ticker": ticker.upper(),
+                    "company_name": company_name or ticker.upper(),
+                    "current_price": current_price,
+                    "predicted_price": predicted_price,
+                    "predicted_change": round(predicted_price - current_price, 4),
+                    "predicted_change_pct": round(
+                        ((predicted_price - current_price) / current_price * 100) if current_price else 0,
+                        4,
+                    ),
+                    "target_datetime": resolved_target_datetime.isoformat(),
+                    "steps_ahead": result["steps_ahead"],
+                    "best_model": result["best_model"],
+                },
+            },
+        )
+        return forecast
+
+    @staticmethod
     def resolve_due_forecasts(user=None, portfolio=None, portfolio_id: int | None = None) -> dict:
         """Resolve all forecast requests that are due for verification."""
         now = timezone.now()
@@ -272,6 +333,76 @@ class MLPipelineRunner:
         return {
             "resolved": resolved,
             "partial": partial,
+            "expired": expired,
+            "failures": failures or None,
+        }
+
+    @staticmethod
+    def resolve_due_single_stock_forecasts(user=None) -> dict:
+        """Resolve all due single-stock forecasts against market data."""
+        now = timezone.now()
+        queryset = SingleStockForecast.objects.filter(
+            status="pending",
+            resolved_target_datetime__lte=now,
+        )
+        if user is not None:
+            queryset = queryset.filter(created_by=user)
+
+        resolved = 0
+        expired = 0
+        failures = []
+
+        for forecast in queryset:
+            try:
+                actual_price, actual_ts = MLPipelineRunner._get_price_near_datetime(
+                    forecast.ticker,
+                    forecast.resolved_target_datetime or forecast.target_datetime,
+                    forecast.interval,
+                )
+                if actual_price is None:
+                    if now > (forecast.resolved_target_datetime or forecast.target_datetime) + (
+                        MLPipelineRunner._get_interval_delta(forecast.interval) * 2
+                    ):
+                        forecast.status = "expired"
+                        forecast.resolved_at = timezone.now()
+                        forecast.save(update_fields=["status", "resolved_at"])
+                        expired += 1
+                    continue
+
+                forecast.actual_price = actual_price
+                forecast.actual_price_timestamp = actual_ts
+                forecast.absolute_error = round(abs(actual_price - (forecast.predicted_price or 0)), 4)
+                forecast.pct_error = round(
+                    (forecast.absolute_error / actual_price * 100) if actual_price else 0,
+                    4,
+                )
+                actual_direction = actual_price - (forecast.current_price or 0)
+                predicted_direction = (forecast.predicted_price or 0) - (forecast.current_price or 0)
+                forecast.direction_match = (
+                    math.copysign(1, actual_direction) == math.copysign(1, predicted_direction)
+                    if actual_direction != 0 and predicted_direction != 0
+                    else actual_direction == predicted_direction
+                )
+                forecast.status = "resolved"
+                forecast.resolved_at = timezone.now()
+                forecast.results_json = {
+                    **(forecast.results_json or {}),
+                    "analysis": {
+                        "actual_price": round(actual_price, 4),
+                        "actual_price_timestamp": actual_ts.isoformat() if actual_ts else None,
+                        "absolute_error": forecast.absolute_error,
+                        "pct_error": forecast.pct_error,
+                        "direction_match": forecast.direction_match,
+                    },
+                }
+                forecast.save()
+                resolved += 1
+            except Exception as exc:
+                logger.exception("Failed to resolve single-stock forecast %s", forecast.pk)
+                failures.append({"forecast_id": forecast.pk, "error": str(exc)})
+
+        return {
+            "resolved": resolved,
             "expired": expired,
             "failures": failures or None,
         }

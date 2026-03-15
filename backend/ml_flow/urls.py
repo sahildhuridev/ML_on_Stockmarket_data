@@ -5,6 +5,7 @@ urlpatterns = [
     path('run-pipeline/', views.RunPipelineView.as_view(), name='ml_flow_run_pipeline'),
     path('forecasts/', views.ForecastRequestListCreateView.as_view(), name='ml_flow_forecasts'),
     path('forecasts/<int:pk>/', views.ForecastRequestDetailView.as_view(), name='ml_flow_forecast_detail'),
+    path('single-stock-forecasts/', views.SingleStockForecastListCreateView.as_view(), name='ml_flow_single_stock_forecasts'),
     path('pipeline-runs/', views.PipelineRunListView.as_view(), name='ml_flow_pipeline_runs'),
     path('pipeline-runs/<int:pk>/', views.PipelineRunDetailView.as_view(), name='ml_flow_pipeline_run_detail'),
     path('predictions/<int:portfolio_id>/', views.LatestPredictionsView.as_view(), name='ml_flow_latest_predictions'),

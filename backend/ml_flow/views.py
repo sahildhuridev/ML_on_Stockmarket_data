@@ -10,7 +10,7 @@ from rest_framework.generics import ListAPIView, RetrieveAPIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 
-from .models import PipelineRun, Prediction, HourlyPrediction, ForecastRequest
+from .models import PipelineRun, Prediction, HourlyPrediction, ForecastRequest, SingleStockForecast
 from portfolios.models import Portfolio
 from .serializers import (
     PipelineRunSerializer,
@@ -20,6 +20,8 @@ from .serializers import (
     RunPipelineInputSerializer,
     ForecastRequestSerializer,
     RunForecastInputSerializer,
+    SingleStockForecastSerializer,
+    RunSingleStockForecastInputSerializer,
 )
 from .pipeline.pipeline_runner import MLPipelineRunner
 from .pipeline.tracking.mlflow_tracker import MLflowTracker
@@ -122,6 +124,44 @@ class ForecastRequestDetailView(RetrieveAPIView):
         return ForecastRequest.objects.filter(
             portfolio__user=self.request.user
         ).select_related("portfolio").prefetch_related("forecast_predictions")
+
+
+class SingleStockForecastListCreateView(APIView):
+    """
+    GET/POST /api/ml_flow/single-stock-forecasts/
+
+    Create and list single-stock exact datetime forecasts.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        MLPipelineRunner.resolve_due_single_stock_forecasts(user=request.user)
+        queryset = SingleStockForecast.objects.filter(created_by=request.user)
+        serializer = SingleStockForecastSerializer(queryset, many=True)
+        return Response(serializer.data)
+
+    def post(self, request):
+        serializer = RunSingleStockForecastInputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            forecast = MLPipelineRunner.create_single_stock_forecast(
+                ticker=serializer.validated_data["ticker"],
+                company_name=serializer.validated_data.get("company_name", ""),
+                target_datetime=serializer.validated_data["target_datetime"],
+                interval=serializer.validated_data.get("interval", "1h"),
+                training_days=serializer.validated_data.get("training_days", 30),
+                user=request.user,
+            )
+            return Response(SingleStockForecastSerializer(forecast).data, status=201)
+        except ValueError as e:
+            return Response({"error": str(e)}, status=400)
+        except Exception as e:
+            logger.exception("Single stock forecast creation failed")
+            return Response(
+                {"error": "Single stock forecast creation failed", "details": str(e)},
+                status=500,
+            )
 
 
 class PipelineRunListView(ListAPIView):
