@@ -33,6 +33,12 @@ jobs:
             echo "Restarting backend..."
             pm2 restart sahil-ml-backend --update-env
 
+            echo "Preparing frontend..."
+            cd ../frontend
+            rm -rf node_modules package-lock.json
+            npm install
+            chmod +x node_modules/.bin/vite
+
             echo "Restarting frontend..."
             pm2 restart sahil-ml-frontend
 
