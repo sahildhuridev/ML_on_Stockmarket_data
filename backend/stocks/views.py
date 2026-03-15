@@ -13,7 +13,11 @@ class StockViewSet(viewsets.ModelViewSet):
     serializer_class = StockSerializer
 
     def get_queryset(self):
-        return Stock.objects.filter(portfolio__user=self.request.user)
+        queryset = Stock.objects.filter(portfolio__user=self.request.user)
+        portfolio_id = self.request.query_params.get("portfolio")
+        if portfolio_id:
+            queryset = queryset.filter(portfolio_id=portfolio_id)
+        return queryset
 
 class StockSearchView(APIView):
     permission_classes = [IsAuthenticated]

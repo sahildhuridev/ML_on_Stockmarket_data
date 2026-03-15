@@ -96,6 +96,14 @@ const MLWorkflow = ({ portfolios }) => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [result, setResult] = useState(null);
+    const [forecastMode, setForecastMode] = useState("portfolio");
+    const [forecastTicker, setForecastTicker] = useState("");
+    const [forecastTargetDateTime, setForecastTargetDateTime] = useState("");
+    const [forecastStocks, setForecastStocks] = useState([]);
+    const [forecasts, setForecasts] = useState([]);
+    const [forecastLoading, setForecastLoading] = useState(false);
+    const [forecastListLoading, setForecastListLoading] = useState(false);
+    const [forecastError, setForecastError] = useState("");
 
     // Pipeline history
     const [historyLoading, setHistoryLoading] = useState(false);
@@ -139,15 +147,46 @@ const MLWorkflow = ({ portfolios }) => {
         }
     };
 
+    const fetchPortfolioStocks = async (portfolioId) => {
+        try {
+            const res = await api.get(`/api/stocks/?portfolio=${portfolioId}`);
+            setForecastStocks(res.data || []);
+        } catch {
+            setForecastStocks([]);
+        }
+    };
+
+    const fetchForecasts = async (portfolioId) => {
+        setForecastListLoading(true);
+        try {
+            const res = await api.get(`/api/ml_flow/forecasts/?portfolio_id=${portfolioId}`);
+            setForecasts(res.data || []);
+        } catch {
+            setForecasts([]);
+        } finally {
+            setForecastListLoading(false);
+        }
+    };
+
     useEffect(() => {
         if (selectedPortfolio) {
             fetchModelRanking(selectedPortfolio);
             fetchMonitoringData(selectedPortfolio);
+            fetchPortfolioStocks(selectedPortfolio);
+            fetchForecasts(selectedPortfolio);
         } else {
             setRankingData(null);
             setMonitoringData(null);
+            setForecastStocks([]);
+            setForecasts([]);
         }
     }, [selectedPortfolio]);
+
+    useEffect(() => {
+        if (forecastMode === "portfolio") {
+            setForecastTicker("");
+        }
+    }, [forecastMode]);
 
     const runPipeline = async () => {
         if (!selectedPortfolio) {
@@ -168,14 +207,52 @@ const MLWorkflow = ({ portfolios }) => {
             // Auto-fetch model ranking and monitoring after pipeline run
             fetchModelRanking(parseInt(selectedPortfolio));
             fetchMonitoringData(parseInt(selectedPortfolio));
+            fetchForecasts(parseInt(selectedPortfolio));
         } catch (err) {
             const msg =
-                err.response?.data?.error ||
                 err.response?.data?.details ||
+                err.response?.data?.error ||
                 "Pipeline execution failed.";
             setError(msg);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const createForecast = async () => {
+        if (!selectedPortfolio) {
+            setForecastError("Please select a portfolio first.");
+            return;
+        }
+        if (!forecastTargetDateTime) {
+            setForecastError("Please choose a target date and time.");
+            return;
+        }
+        if (forecastMode === "single_stock" && !forecastTicker) {
+            setForecastError("Please select a stock.");
+            return;
+        }
+
+        setForecastLoading(true);
+        setForecastError("");
+        try {
+            await api.post("/api/ml_flow/forecasts/", {
+                portfolio_id: parseInt(selectedPortfolio),
+                prediction_scope: forecastMode,
+                ticker: forecastMode === "single_stock" ? forecastTicker : "",
+                interval,
+                training_days: trainingDays,
+                target_datetime: new Date(forecastTargetDateTime).toISOString(),
+            });
+            fetchForecasts(parseInt(selectedPortfolio));
+        } catch (err) {
+            const msg =
+                err.response?.data?.details ||
+                err.response?.data?.error ||
+                "Forecast creation failed.";
+            setForecastError(msg);
+        } finally {
+            setForecastLoading(false);
         }
     };
 
@@ -389,6 +466,96 @@ const MLWorkflow = ({ portfolios }) => {
                     <div className="flex items-center gap-2 text-[#f23645] text-sm bg-[rgba(242,54,69,0.08)] border border-[rgba(242,54,69,0.2)] rounded-lg px-4 py-3">
                         <AlertCircle size={16} />
                         {error}
+                    </div>
+                )}
+            </div>
+
+            <div className="bg-[#1e222d] border border-[#2b2b43] rounded-xl p-5 space-y-4">
+                <div className="flex items-center justify-between gap-3">
+                    <div>
+                        <h3 className="text-sm font-semibold text-white">Exact Date/Time Forecast</h3>
+                        <p className="text-xs text-[#787b86] mt-1">
+                            Predict a single stock or the full portfolio for a target market time, then compare predicted vs actual once that time is reached.
+                        </p>
+                    </div>
+                    <div className="text-[11px] text-[#787b86] bg-[#131722] border border-[#2b2b43] rounded-md px-3 py-2">
+                        Uses the selected interval as forecast granularity.
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div className="space-y-1.5">
+                        <label className="text-xs font-medium text-[#787b86] uppercase tracking-wider">
+                            Forecast Mode
+                        </label>
+                        <select
+                            value={forecastMode}
+                            onChange={(e) => setForecastMode(e.target.value)}
+                            className="w-full bg-[#131722] border border-[#2b2b43] rounded-lg px-3 py-2.5 text-sm text-white outline-none focus:border-[#2962FF]"
+                        >
+                            <option value="portfolio">Complete Portfolio</option>
+                            <option value="single_stock">Single Stock</option>
+                        </select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                        <label className="text-xs font-medium text-[#787b86] uppercase tracking-wider">
+                            Stock
+                        </label>
+                        <select
+                            value={forecastTicker}
+                            onChange={(e) => setForecastTicker(e.target.value)}
+                            disabled={forecastMode !== "single_stock"}
+                            className="w-full bg-[#131722] border border-[#2b2b43] rounded-lg px-3 py-2.5 text-sm text-white outline-none focus:border-[#2962FF] disabled:opacity-50"
+                        >
+                            <option value="">
+                                {forecastMode === "single_stock" ? "Select stock..." : "Portfolio mode uses all stocks"}
+                            </option>
+                            {forecastStocks.map((stock) => (
+                                <option key={stock.id} value={stock.ticker}>
+                                    {stock.ticker}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                        <label className="text-xs font-medium text-[#787b86] uppercase tracking-wider">
+                            Target Date & Time
+                        </label>
+                        <input
+                            type="datetime-local"
+                            value={forecastTargetDateTime}
+                            onChange={(e) => setForecastTargetDateTime(e.target.value)}
+                            className="w-full bg-[#131722] border border-[#2b2b43] rounded-lg px-3 py-2.5 text-sm text-white outline-none focus:border-[#2962FF]"
+                        />
+                    </div>
+
+                    <div className="flex items-end">
+                        <button
+                            onClick={createForecast}
+                            disabled={forecastLoading}
+                            className="w-full bg-gradient-to-r from-[#089981] to-[#2962FF] hover:opacity-90 text-white font-semibold py-2.5 px-5 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                        >
+                            {forecastLoading ? (
+                                <>
+                                    <Loader2 size={16} className="animate-spin" />
+                                    Creating Forecast...
+                                </>
+                            ) : (
+                                <>
+                                    <Target size={16} />
+                                    Create Forecast
+                                </>
+                            )}
+                        </button>
+                    </div>
+                </div>
+
+                {forecastError && (
+                    <div className="flex items-center gap-2 text-[#f23645] text-sm bg-[rgba(242,54,69,0.08)] border border-[rgba(242,54,69,0.2)] rounded-lg px-4 py-3">
+                        <AlertCircle size={16} />
+                        {forecastError}
                     </div>
                 )}
             </div>
@@ -1318,6 +1485,90 @@ const MLWorkflow = ({ portfolios }) => {
             </div>
 
             {/* ── Experiments (collapsible) ───────────────────────── */}
+            <div className="bg-[#1e222d] border border-[#2b2b43] rounded-xl overflow-hidden">
+                <div className="px-5 py-4 border-b border-[#2b2b43] flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                        <Timer size={16} className="text-[#2962FF]" />
+                        <h3 className="text-sm font-semibold text-white">Scheduled Forecasts</h3>
+                    </div>
+                    {forecastListLoading && <Loader2 size={16} className="animate-spin text-[#787b86]" />}
+                </div>
+
+                {forecasts.length === 0 ? (
+                    <div className="p-5 text-sm text-[#787b86]">
+                        No exact date/time forecasts yet for this portfolio.
+                    </div>
+                ) : (
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                            <thead>
+                                <tr className="border-b border-[#2b2b43]">
+                                    <th className="px-4 py-3 text-left text-xs font-semibold text-[#787b86] uppercase">Requested</th>
+                                    <th className="px-3 py-3 text-left text-xs font-semibold text-[#787b86] uppercase">Target</th>
+                                    <th className="px-3 py-3 text-left text-xs font-semibold text-[#787b86] uppercase">Scope</th>
+                                    <th className="px-3 py-3 text-left text-xs font-semibold text-[#787b86] uppercase">Tickers</th>
+                                    <th className="px-3 py-3 text-right text-xs font-semibold text-[#787b86] uppercase">Predicted Change</th>
+                                    <th className="px-3 py-3 text-right text-xs font-semibold text-[#787b86] uppercase">Avg Error</th>
+                                    <th className="px-3 py-3 text-center text-xs font-semibold text-[#787b86] uppercase">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {forecasts.map((forecast, idx) => {
+                                    const summary = forecast.results_json?.summary || {};
+                                    const analysis = forecast.results_json?.analysis || {};
+                                    return (
+                                        <tr
+                                            key={forecast.id}
+                                            className={`border-b border-[#2b2b43]/50 ${idx % 2 === 0 ? "bg-[#1e222d]" : "bg-[#1a1e28]"}`}
+                                        >
+                                            <td className="px-4 py-3 text-xs text-[#787b86]">
+                                                {new Date(forecast.requested_at).toLocaleString()}
+                                            </td>
+                                            <td className="px-3 py-3 text-xs text-white">
+                                                {new Date(forecast.resolved_target_datetime || forecast.target_datetime).toLocaleString()}
+                                            </td>
+                                            <td className="px-3 py-3 text-[#d1d4dc]">
+                                                {forecast.prediction_scope === "single_stock" ? "Single Stock" : "Portfolio"}
+                                            </td>
+                                            <td className="px-3 py-3 text-xs text-[#d1d4dc]">
+                                                {(forecast.requested_tickers || []).join(", ")}
+                                            </td>
+                                            <td className="px-3 py-3 text-right font-mono">
+                                                {summary.aggregate_predicted_change_pct != null ? (
+                                                    <span className={summary.aggregate_predicted_change_pct >= 0 ? "text-[#089981]" : "text-[#f23645]"}>
+                                                        {summary.aggregate_predicted_change_pct.toFixed(2)}%
+                                                    </span>
+                                                ) : <span className="text-[#787b86]">-</span>}
+                                            </td>
+                                            <td className="px-3 py-3 text-right font-mono">
+                                                {analysis.avg_pct_error != null ? (
+                                                    <span className="text-white">{analysis.avg_pct_error.toFixed(2)}%</span>
+                                                ) : <span className="text-[#787b86]">Pending</span>}
+                                            </td>
+                                            <td className="px-3 py-3 text-center">
+                                                <span
+                                                    className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                                                        forecast.status === "resolved"
+                                                            ? "bg-[rgba(8,153,129,0.15)] text-[#089981]"
+                                                            : forecast.status === "partial"
+                                                                ? "bg-[rgba(247,147,26,0.15)] text-[#f7931a]"
+                                                                : forecast.status === "failed" || forecast.status === "expired"
+                                                                    ? "bg-[rgba(242,54,69,0.15)] text-[#f23645]"
+                                                                    : "bg-[rgba(41,98,255,0.15)] text-[#2962FF]"
+                                                    }`}
+                                                >
+                                                    {forecast.status}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+            </div>
+
             <div className="bg-[#1e222d] border border-[#2b2b43] rounded-xl overflow-hidden">
                 <button
                     onClick={loadExperiments}

@@ -10,7 +10,7 @@ from rest_framework.generics import ListAPIView, RetrieveAPIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 
-from .models import PipelineRun, Prediction, HourlyPrediction
+from .models import PipelineRun, Prediction, HourlyPrediction, ForecastRequest
 from portfolios.models import Portfolio
 from .serializers import (
     PipelineRunSerializer,
@@ -18,6 +18,8 @@ from .serializers import (
     PredictionSerializer,
     HourlyPredictionSerializer,
     RunPipelineInputSerializer,
+    ForecastRequestSerializer,
+    RunForecastInputSerializer,
 )
 from .pipeline.pipeline_runner import MLPipelineRunner
 from .pipeline.tracking.mlflow_tracker import MLflowTracker
@@ -58,6 +60,68 @@ class RunPipelineView(APIView):
                 {"error": "Pipeline execution failed", "details": str(e)},
                 status=500,
             )
+
+
+class ForecastRequestListCreateView(APIView):
+    """
+    GET/POST /api/ml_flow/forecasts/
+
+    Create and list exact target datetime forecasts.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        portfolio_id = request.query_params.get("portfolio_id")
+        MLPipelineRunner.resolve_due_forecasts(
+            user=request.user,
+            portfolio_id=int(portfolio_id) if portfolio_id else None,
+        )
+
+        queryset = ForecastRequest.objects.filter(portfolio__user=request.user).select_related("portfolio")
+        if portfolio_id:
+            queryset = queryset.filter(portfolio_id=portfolio_id)
+        queryset = queryset.prefetch_related("forecast_predictions")
+
+        serializer = ForecastRequestSerializer(queryset, many=True)
+        return Response(serializer.data)
+
+    def post(self, request):
+        serializer = RunForecastInputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            forecast_request = MLPipelineRunner.create_forecast(
+                portfolio_id=serializer.validated_data["portfolio_id"],
+                target_datetime=serializer.validated_data["target_datetime"],
+                prediction_scope=serializer.validated_data.get("prediction_scope", "portfolio"),
+                ticker=serializer.validated_data.get("ticker"),
+                interval=serializer.validated_data.get("interval", "1h"),
+                training_days=serializer.validated_data.get("training_days", 30),
+                user=request.user,
+            )
+            return Response(ForecastRequestSerializer(forecast_request).data, status=201)
+        except ValueError as e:
+            return Response({"error": str(e)}, status=400)
+        except Exception as e:
+            logger.exception("Forecast creation failed")
+            return Response(
+                {"error": "Forecast creation failed", "details": str(e)},
+                status=500,
+            )
+
+
+class ForecastRequestDetailView(RetrieveAPIView):
+    """
+    GET /api/ml_flow/forecasts/<pk>/
+    """
+    permission_classes = [IsAuthenticated]
+    serializer_class = ForecastRequestSerializer
+
+    def get_queryset(self):
+        MLPipelineRunner.resolve_due_forecasts(user=self.request.user)
+        return ForecastRequest.objects.filter(
+            portfolio__user=self.request.user
+        ).select_related("portfolio").prefetch_related("forecast_predictions")
 
 
 class PipelineRunListView(ListAPIView):

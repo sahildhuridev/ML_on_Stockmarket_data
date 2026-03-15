@@ -75,8 +75,6 @@ class CryptoAnalysisView(APIView):
         except Exception as e:
             return Response({"error": str(e)}, status=500)
 
-from .time_series_prediction import analyze_time_series
-
 class TimeSeriesAnalysisView(APIView):
     permission_classes = [AllowAny]
 
@@ -87,6 +85,7 @@ class TimeSeriesAnalysisView(APIView):
         models = request.data.get('models', [])
         
         try:
+            from .time_series_prediction import analyze_time_series
             result = analyze_time_series(symbol, interval, period, models)
             if "error" in result:
                 return Response(result, status=400)

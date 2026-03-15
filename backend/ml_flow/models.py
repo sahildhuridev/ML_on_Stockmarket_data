@@ -10,6 +10,7 @@ class PipelineRun(models.Model):
         ('pending', 'Pending'),
         ('running', 'Running'),
         ('completed', 'Completed'),
+        ('partial', 'Partial'),
         ('failed', 'Failed'),
     ]
 
@@ -114,3 +115,88 @@ class HourlyPrediction(models.Model):
     def __str__(self):
         status_str = f"✓ err={self.pct_error:.2f}%" if self.status == 'verified' else "⏳ pending"
         return f"{self.ticker}/{self.model_name}: ${self.predicted_price:.2f} ({status_str})"
+
+
+class ForecastRequest(models.Model):
+    """Stores exact target date/time forecast requests."""
+
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('resolved', 'Resolved'),
+        ('partial', 'Partial'),
+        ('failed', 'Failed'),
+        ('expired', 'Expired'),
+    ]
+
+    SCOPE_CHOICES = [
+        ('single_stock', 'Single Stock'),
+        ('portfolio', 'Portfolio'),
+    ]
+
+    portfolio = models.ForeignKey(
+        Portfolio,
+        on_delete=models.CASCADE,
+        related_name='forecast_requests',
+    )
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='forecast_requests',
+    )
+    prediction_scope = models.CharField(max_length=20, choices=SCOPE_CHOICES)
+    interval = models.CharField(max_length=10, default='1h')
+    training_days = models.IntegerField(default=30)
+    requested_tickers = models.JSONField(default=list, blank=True)
+    target_datetime = models.DateTimeField()
+    resolved_target_datetime = models.DateTimeField(null=True, blank=True)
+    requested_at = models.DateTimeField(auto_now_add=True)
+    resolved_at = models.DateTimeField(null=True, blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    results_json = models.JSONField(default=dict, blank=True)
+    error_message = models.TextField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-requested_at']
+
+    def __str__(self):
+        return f"ForecastRequest #{self.pk} ({self.prediction_scope}) - {self.portfolio.name}"
+
+
+class ForecastPrediction(models.Model):
+    """Per-stock forecast generated for an exact target datetime."""
+
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('verified', 'Verified'),
+        ('expired', 'Expired'),
+        ('failed', 'Failed'),
+    ]
+
+    forecast_request = models.ForeignKey(
+        ForecastRequest,
+        on_delete=models.CASCADE,
+        related_name='forecast_predictions',
+    )
+    ticker = models.CharField(max_length=20)
+    best_model = models.CharField(max_length=100)
+    current_price_at_request = models.FloatField()
+    predicted_price = models.FloatField()
+    model_predictions = models.JSONField(default=dict, blank=True)
+    model_metrics = models.JSONField(default=dict, blank=True)
+    actual_price = models.FloatField(null=True, blank=True)
+    actual_price_timestamp = models.DateTimeField(null=True, blank=True)
+    absolute_error = models.FloatField(null=True, blank=True)
+    pct_error = models.FloatField(null=True, blank=True)
+    direction_match = models.BooleanField(null=True, blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    created_at = models.DateTimeField(auto_now_add=True)
+    verified_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        target = self.forecast_request.resolved_target_datetime or self.forecast_request.target_datetime
+        return f"{self.ticker}: {self.predicted_price:.2f} @ {target}"
