@@ -10,7 +10,7 @@ const Navbar = () => {
     <div className="bg-[#131722] border-b border-white/5 text-white px-4 py-3 sticky top-0 z-50">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <Link to="/" className="font-bold text-lg sm:text-xl tracking-tight flex items-center gap-2">
-          <span className="text-blue-500">Bizmetric</span> Analytics
+          <span className="text-blue-500">Sahil</span> Analysis
         </Link>
         {user ? (
           <div className="flex flex-wrap gap-3 sm:gap-6 items-center">
