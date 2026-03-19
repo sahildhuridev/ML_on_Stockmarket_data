@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -49,6 +50,7 @@ INSTALLED_APPS = [
     'analysis',
     'ml_models',
     'ml_flow',
+    'sentiment_analysis',
 ]
 
 MIDDLEWARE = [
@@ -158,6 +160,7 @@ CORS_ALLOW_ALL_ORIGINS = True
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+SENTIMENT_DATA_ROOT = os.getenv('SENTIMENT_DATA_ROOT', str(BASE_DIR / 'data'))
 
 # Celery Configuration
 CELERY_BROKER_URL = 'redis://localhost:6379/0'
