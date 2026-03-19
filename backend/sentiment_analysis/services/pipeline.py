@@ -89,25 +89,33 @@ def _normalize_price_record(record: dict, ticker: str) -> dict:
 
 class FinBertService:
     _classifier = None
+    _load_failed = False
 
     @classmethod
     def _get_classifier(cls):
-        if cls._classifier is None and TRANSFORMERS_AVAILABLE:
+        if cls._classifier is None and TRANSFORMERS_AVAILABLE and not cls._load_failed:
             model_name = os.getenv("HF_MODEL_NAME", "ProsusAI/finbert")
-            tokenizer = AutoTokenizer.from_pretrained(model_name)
-            model = AutoModelForSequenceClassification.from_pretrained(model_name)
-            cls._classifier = pipeline("sentiment-analysis", model=model, tokenizer=tokenizer)
+            try:
+                tokenizer = AutoTokenizer.from_pretrained(model_name)
+                model = AutoModelForSequenceClassification.from_pretrained(model_name)
+                cls._classifier = pipeline("sentiment-analysis", model=model, tokenizer=tokenizer)
+            except Exception as exc:  # pragma: no cover
+                logger.warning("FinBERT load failed; falling back to lexical scoring: %s", exc)
+                cls._load_failed = True
         return cls._classifier
 
     @classmethod
     def score(cls, text: str) -> dict:
         classifier = cls._get_classifier()
         if classifier and text:
-            result = classifier(text[:512])[0]
-            confidence = float(result.get("score", 0.0))
-            label = result.get("label", "neutral").title()
-            signed_score = confidence if label == "Positive" else (-confidence if label == "Negative" else 0.0)
-            return {"label": label, "confidence": round(confidence, 4), "score_0_10": round(((signed_score + 1) / 2) * 10, 2)}
+            try:
+                result = classifier(text[:512])[0]
+                confidence = float(result.get("score", 0.0))
+                label = result.get("label", "neutral").title()
+                signed_score = confidence if label == "Positive" else (-confidence if label == "Negative" else 0.0)
+                return {"label": label, "confidence": round(confidence, 4), "score_0_10": round(((signed_score + 1) / 2) * 10, 2)}
+            except Exception as exc:  # pragma: no cover
+                logger.warning("FinBERT inference failed; falling back to lexical scoring: %s", exc)
 
         words = re.findall(r"[a-zA-Z']+", text.lower())
         positive_hits = sum(1 for word in words if word in POSITIVE_WORDS)

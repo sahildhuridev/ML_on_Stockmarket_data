@@ -3,6 +3,10 @@ import matplotlib.pyplot as plt
 import yfinance as yf
 from sklearn.linear_model import LinearRegression
 import numpy as np
+import logging
+
+
+logger = logging.getLogger(__name__)
 
 
 def _extract_price_frame(data):
@@ -22,6 +26,58 @@ def _extract_price_frame(data):
         else:
             raise ValueError("Close prices are unavailable from Yahoo Finance.")
     return prices
+
+
+def _build_explanations(X, lr_gld, lr_slv):
+    empty = {
+        "shap": {
+            "features": ["TimeIndex"],
+            "gld_importance": [0.0],
+            "slv_importance": [0.0],
+        },
+        "lime": {
+            "explained_instance_year": int(X[-1][0]) if len(X) else 0,
+            "gld_explanation": [],
+            "slv_explanation": [],
+        },
+    }
+
+    try:
+        import shap
+        import lime
+        import lime.lime_tabular
+
+        explainer_shap_gld = shap.LinearExplainer(lr_gld, X)
+        shap_values_gld = explainer_shap_gld.shap_values(X)
+
+        explainer_shap_slv = shap.LinearExplainer(lr_slv, X)
+        shap_values_slv = explainer_shap_slv.shap_values(X)
+
+        shap_data = {
+            "features": ["TimeIndex"],
+            "gld_importance": np.abs(shap_values_gld).mean(axis=0).tolist(),
+            "slv_importance": np.abs(shap_values_slv).mean(axis=0).tolist(),
+        }
+
+        lime_explainer_gld = lime.lime_tabular.LimeTabularExplainer(
+            X, feature_names=["TimeIndex"], class_names=['GLD_Price'], mode='regression'
+        )
+        exp_gld = lime_explainer_gld.explain_instance(X[-1], lr_gld.predict, num_features=1)
+
+        lime_explainer_slv = lime.lime_tabular.LimeTabularExplainer(
+            X, feature_names=["TimeIndex"], class_names=['SLV_Price'], mode='regression'
+        )
+        exp_slv = lime_explainer_slv.explain_instance(X[-1], lr_slv.predict, num_features=1)
+
+        lime_data = {
+            "explained_instance_year": int(X[-1][0]),
+            "gld_explanation": exp_gld.as_list(),
+            "slv_explanation": exp_slv.as_list(),
+        }
+        return {"shap": shap_data, "lime": lime_data}
+    except Exception as exc:
+        logger.warning("Gold/silver univariate explainability failed; returning empty explanations: %s", exc)
+        return empty
 
 def analyze_gold_silver_univariate(interval='1y'):
     """
@@ -90,43 +146,7 @@ def analyze_gold_silver_univariate(interval='1y'):
         'Predicted_SLV': pred_slv
     })
     
-    # Explainability
-    import shap
-    import lime
-    import lime.lime_tabular
-
-    explainer_shap_gld = shap.LinearExplainer(lr_gld, X)
-    shap_values_gld = explainer_shap_gld.shap_values(X)
-    
-    explainer_shap_slv = shap.LinearExplainer(lr_slv, X)
-    shap_values_slv = explainer_shap_slv.shap_values(X)
-    
-    gld_shap_importance = np.abs(shap_values_gld).mean(axis=0).tolist()
-    slv_shap_importance = np.abs(shap_values_slv).mean(axis=0).tolist()
-    
-    shap_data = {
-        "features": ["TimeIndex"],
-        "gld_importance": gld_shap_importance,
-        "slv_importance": slv_shap_importance
-    }
-    
-    lime_explainer_gld = lime.lime_tabular.LimeTabularExplainer(
-        X, feature_names=["TimeIndex"], class_names=['GLD_Price'], mode='regression'
-    )
-    exp_gld = lime_explainer_gld.explain_instance(X[-1], lr_gld.predict, num_features=1)
-    lime_gld_dict = exp_gld.as_list()
-    
-    lime_explainer_slv = lime.lime_tabular.LimeTabularExplainer(
-        X, feature_names=["TimeIndex"], class_names=['SLV_Price'], mode='regression'
-    )
-    exp_slv = lime_explainer_slv.explain_instance(X[-1], lr_slv.predict, num_features=1)
-    lime_slv_dict = exp_slv.as_list()
-    
-    lime_data = {
-        "explained_instance_year": int(X[-1][0]),
-        "gld_explanation": lime_gld_dict,
-        "slv_explanation": lime_slv_dict
-    }
+    explanations = _build_explanations(X, lr_gld, lr_slv)
 
     # Format JSON payload
     historical_data = []
@@ -155,8 +175,5 @@ def analyze_gold_silver_univariate(interval='1y'):
     return {
         "historical": historical_data,
         "predictions": prediction_data,
-        "explanations": {
-            "shap": shap_data,
-            "lime": lime_data
-        }
+        "explanations": explanations
     }
