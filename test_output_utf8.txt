@@ -1,0 +1,31 @@
+﻿c:\Users\Sahil\Desktop\bizm
+etric\bizmetric_sahil_fsd\M
+L_Stock_analysis\backend\sa
+hil2_venv\Scripts\python.ex
+e : 
+At line:1 char:1
++ c:\Users\Sahil\Desktop\bi
+zmetric\bizmetric_sahil_fsd
+\ML_Stock_analysi ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~
+    + CategoryInfo         
+     : NotSpecified: (:St  
+  ring) [], RemoteExcept   
+ ion
+    + FullyQualifiedErrorI 
+   d : NativeCommandError
+ 
+[                       0% 
+                      ]
+[*********************100%*
+**********************]  2 
+of 2 completed
+Starting test...
+Fetching data from Yahoo Finance for GLD and SLV... (Interval: 1y)
+Success!
+Historical data points: 19
+Prediction data points: 10
+SHAP data keys: dict_keys(['features', 'gld_importance', 'slv_importance'])
+LIME data keys: dict_keys(['explained_instance_year', 'gld_explanation', 'slv_explanation'])

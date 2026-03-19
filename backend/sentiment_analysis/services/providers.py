@@ -90,3 +90,9 @@ class YFinanceClient:
         frame.columns = [str(col) for col in frame.columns]
         return ProviderPayload(source="yfinance_price", records=frame.to_dict(orient="records"))
 
+    def fetch_news(self, ticker: str) -> ProviderPayload:
+        try:
+            news = yf.Ticker(ticker).news or []
+        except Exception:
+            news = []
+        return ProviderPayload(source="yfinance_news", records=news)

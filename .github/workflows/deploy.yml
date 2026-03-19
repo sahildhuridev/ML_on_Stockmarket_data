@@ -40,6 +40,9 @@ jobs:
             npm run build
 
             echo "Restarting frontend..."
-            pm2 restart sahil-ml-frontend
+            echo "Deploying frontend to NGINX..."
+            sudo rm -rf /var/www/sahil-frontend/*
+            sudo cp -r build/* /var/www/sahil-frontend/
+            
 
             echo "Deployment completed successfully!"

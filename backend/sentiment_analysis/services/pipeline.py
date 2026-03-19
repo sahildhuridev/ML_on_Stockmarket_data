@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import math
 import re
 from collections import Counter
@@ -88,8 +89,9 @@ class FinBertService:
     @classmethod
     def _get_classifier(cls):
         if cls._classifier is None and TRANSFORMERS_AVAILABLE:
-            tokenizer = AutoTokenizer.from_pretrained("ProsusAI/finbert")
-            model = AutoModelForSequenceClassification.from_pretrained("ProsusAI/finbert")
+            model_name = os.getenv("HF_MODEL_NAME", "ProsusAI/finbert")
+            tokenizer = AutoTokenizer.from_pretrained(model_name)
+            model = AutoModelForSequenceClassification.from_pretrained(model_name)
             cls._classifier = pipeline("sentiment-analysis", model=model, tokenizer=tokenizer)
         return cls._classifier
 
@@ -171,6 +173,7 @@ class SentimentPipeline:
             self.finnhub.fetch_company_news(ticker, window_days),
             self.newsapi.fetch_news(ticker, company_name, window_days),
             self.finnhub.fetch_earnings(ticker, window_days),
+            self.yfinance.fetch_news(ticker),
         ]
         price_payload = self.yfinance.fetch_prices(ticker, window_days)
 
@@ -201,6 +204,9 @@ class SentimentPipeline:
         register_artifact(self.job, "bronze", "prices_raw_table", price_csv, "csv", len(price_rows))
 
     def build_silver(self, news_rows: list[dict]) -> list[dict]:
+        if not news_rows:
+            raise ValueError("No sentiment articles or earnings records were returned by Finnhub, NewsAPI, or Yahoo Finance.")
+
         if PYSPARK_AVAILABLE and news_rows:
             spark = SparkSession.builder.master("local[*]").appName("sentiment-analysis").getOrCreate()
             try:
@@ -228,12 +234,22 @@ class SentimentPipeline:
         silver_rows = dedupe_records(silver_rows)
         silver_path, silver_format = write_parquet(self.job, "silver", "normalized_news", silver_rows)
         register_artifact(self.job, "silver", "normalized_news", silver_path, silver_format, len(silver_rows), {"engine": "pyspark" if PYSPARK_AVAILABLE else "pandas"})
+        if not silver_rows:
+            raise ValueError("Raw sentiment records were fetched, but no usable text remained after cleaning and deduplication.")
         return silver_rows
 
     def build_gold(self, silver_rows: list[dict], price_rows: list[dict]) -> dict:
         gold_rows = [{**row, **FinBertService.score(row.get("text", ""))} for row in silver_rows]
         gold_path, gold_format = write_parquet(self.job, "gold", "sentiment_scores", gold_rows)
-        register_artifact(self.job, "gold", "sentiment_scores", gold_path, gold_format, len(gold_rows), {"model": "ProsusAI/finbert" if TRANSFORMERS_AVAILABLE else "lexicon-fallback"})
+        register_artifact(
+            self.job,
+            "gold",
+            "sentiment_scores",
+            gold_path,
+            gold_format,
+            len(gold_rows),
+            {"model": os.getenv("HF_MODEL_NAME", "ProsusAI/finbert") if TRANSFORMERS_AVAILABLE else "lexicon-fallback"},
+        )
         return {"gold_rows": gold_rows, "summary": self._aggregate(gold_rows, price_rows)}
 
     def _aggregate(self, gold_rows: list[dict], price_rows: list[dict]) -> dict:

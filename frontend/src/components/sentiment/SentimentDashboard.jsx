@@ -157,6 +157,7 @@ const SentimentDashboard = () => {
   const feed = results?.news_feed_json || [];
   const words = results?.word_cloud_json || [];
   const reportUrl = results?.report?.download_url;
+  const jobError = job?.status === "failed" ? job?.error_message : "";
 
   const correlationTone = useMemo(() => {
     const value = correlation.value || 0;
@@ -235,7 +236,11 @@ const SentimentDashboard = () => {
               )}
             </div>
 
-            {error && <div className="mt-4 rounded-2xl border border-red-500/25 bg-red-500/10 px-4 py-3 text-sm text-red-200">{error}</div>}
+            {(error || jobError) && (
+              <div className="mt-4 rounded-2xl border border-red-500/25 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+                {error || jobError}
+              </div>
+            )}
           </div>
 
           <div className="rounded-[24px] border border-white/10 bg-black/20 p-5 backdrop-blur">
