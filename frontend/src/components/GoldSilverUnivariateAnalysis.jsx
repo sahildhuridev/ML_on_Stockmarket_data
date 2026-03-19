@@ -20,6 +20,7 @@ import Spinner from "./Spinner";
 const GoldSilverUnivariateAnalysis = () => {
     const [data, setData] = useState({ historical: [], predictions: [] });
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
     const [activeView, setActiveView] = useState("gold"); // "gold", "silver", "correlation"
     const [isOpen, setIsOpen] = useState(false);
 
@@ -28,12 +29,15 @@ const GoldSilverUnivariateAnalysis = () => {
     useEffect(() => {
         const fetchData = async () => {
             setLoading(true);
+            setError("");
             try {
                 // Post to backend with selected interval
                 const response = await api.post("/api/ml_models/gold-silver-univariate/", { interval });
                 setData(response.data);
             } catch (error) {
                 console.error("Error fetching Gold/Silver data", error);
+                setError(error.response?.data?.error || "Gold and silver univariate analysis failed to load.");
+                setData({ historical: [], predictions: [], explanations: {} });
             } finally {
                 setLoading(false);
             }
@@ -46,6 +50,17 @@ const GoldSilverUnivariateAnalysis = () => {
             <Spinner />
         </div>
     );
+
+    if (error) {
+        return (
+            <div className="bg-white text-gray-900 p-6 shadow rounded mb-8">
+                <h2 className="text-xl font-bold mb-3">Gold and Silver Correlation Analysis (Univariate)</h2>
+                <div className="rounded border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                    {error}
+                </div>
+            </div>
+        );
+    }
 
     // Combine historical and predictions for Line Charts
     const combinedDataSeries = [...data.historical, ...data.predictions].sort((a, b) => {
