@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import math
+import logging
 import re
 from collections import Counter
 
@@ -36,6 +37,9 @@ except Exception:  # pragma: no cover
     faiss = None
     np = None
     FAISS_AVAILABLE = False
+
+
+logger = logging.getLogger(__name__)
 
 
 POSITIVE_WORDS = {"beat", "growth", "surge", "gain", "bullish", "strong", "profit", "rally", "upgrade", "record"}
@@ -163,6 +167,7 @@ class SentimentPipeline:
         self.finnhub = FinnhubClient()
         self.newsapi = NewsApiClient()
         self.yfinance = YFinanceClient()
+        self.use_pyspark = PYSPARK_AVAILABLE and os.getenv("SENTIMENT_USE_PYSPARK", "false").lower() == "true"
 
     def fetch_sources(self) -> tuple[list[dict], list[dict], dict]:
         ticker = self.job.ticker
@@ -207,35 +212,55 @@ class SentimentPipeline:
         if not news_rows:
             raise ValueError("No sentiment articles or earnings records were returned by Finnhub, NewsAPI, or Yahoo Finance.")
 
-        if PYSPARK_AVAILABLE and news_rows:
-            spark = SparkSession.builder.master("local[*]").appName("sentiment-analysis").getOrCreate()
+        if self.use_pyspark and news_rows:
             try:
-                frame = spark.createDataFrame(news_rows)
-                frame = frame.withColumn("text", F.trim(F.regexp_replace(F.col("text"), r"\s+", " ")))
-                frame = frame.withColumn("text_length", F.length(F.col("text")))
-                frame = frame.withColumn("content_key", F.sha2(F.concat_ws("||", "ticker", "source", "title", "published_at"), 256))
-                frame = frame.dropDuplicates(["content_key"])
-                silver_rows = [row.asDict() for row in frame.collect()]
-            finally:
-                spark.stop()
+                spark_rows = []
+                for row in news_rows:
+                    spark_rows.append({**row, "metadata": json.dumps(row.get("metadata", {}), default=str)})
+
+                spark = SparkSession.builder.master("local[*]").appName("sentiment-analysis").getOrCreate()
+                try:
+                    frame = spark.createDataFrame(spark_rows)
+                    frame = frame.withColumn("text", F.trim(F.regexp_replace(F.col("text"), r"\s+", " ")))
+                    frame = frame.withColumn("text_length", F.length(F.col("text")))
+                    frame = frame.withColumn("content_key", F.sha2(F.concat_ws("||", "ticker", "source", "title", "published_at"), 256))
+                    frame = frame.dropDuplicates(["content_key"])
+                    silver_rows = [row.asDict() for row in frame.collect()]
+                finally:
+                    spark.stop()
+            except Exception as exc:
+                logger.warning("PySpark silver stage failed; falling back to pandas cleaning: %s", exc)
+                silver_rows = self._build_silver_without_spark(news_rows)
         else:
-            seen = set()
-            silver_rows = []
-            for row in news_rows:
-                clean_row = {**row, "text": _clean_text(row.get("text", ""))}
-                content_key = f"{clean_row['ticker']}|{clean_row['source']}|{clean_row['title']}|{clean_row['published_at']}"
-                if content_key in seen or not clean_row["text"]:
-                    continue
-                seen.add(content_key)
-                clean_row["content_key"] = content_key
-                clean_row["text_length"] = len(clean_row["text"])
-                silver_rows.append(clean_row)
+            silver_rows = self._build_silver_without_spark(news_rows)
 
         silver_rows = dedupe_records(silver_rows)
         silver_path, silver_format = write_parquet(self.job, "silver", "normalized_news", silver_rows)
-        register_artifact(self.job, "silver", "normalized_news", silver_path, silver_format, len(silver_rows), {"engine": "pyspark" if PYSPARK_AVAILABLE else "pandas"})
+        register_artifact(
+            self.job,
+            "silver",
+            "normalized_news",
+            silver_path,
+            silver_format,
+            len(silver_rows),
+            {"engine": "pyspark" if self.use_pyspark else "pandas"},
+        )
         if not silver_rows:
             raise ValueError("Raw sentiment records were fetched, but no usable text remained after cleaning and deduplication.")
+        return silver_rows
+
+    def _build_silver_without_spark(self, news_rows: list[dict]) -> list[dict]:
+        seen = set()
+        silver_rows = []
+        for row in news_rows:
+            clean_row = {**row, "text": _clean_text(row.get("text", ""))}
+            content_key = f"{clean_row['ticker']}|{clean_row['source']}|{clean_row['title']}|{clean_row['published_at']}"
+            if content_key in seen or not clean_row["text"]:
+                continue
+            seen.add(content_key)
+            clean_row["content_key"] = content_key
+            clean_row["text_length"] = len(clean_row["text"])
+            silver_rows.append(clean_row)
         return silver_rows
 
     def build_gold(self, silver_rows: list[dict], price_rows: list[dict]) -> dict:

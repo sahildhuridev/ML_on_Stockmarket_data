@@ -53,6 +53,7 @@ class FinnhubClient:
 
 class NewsApiClient:
     BASE_URL = "https://newsapi.org/v2/everything"
+    MAX_LOOKBACK_DAYS = 30
 
     def __init__(self):
         self.api_key = os.getenv("NEWSAPI_API_KEY", "").strip()
@@ -60,23 +61,28 @@ class NewsApiClient:
     def fetch_news(self, ticker: str, company_name: str, days: int) -> ProviderPayload:
         if not self.api_key:
             return ProviderPayload(source="newsapi_news", records=[])
+        days = min(days, self.MAX_LOOKBACK_DAYS)
         end = timezone.now()
         start = end - timedelta(days=days)
-        response = requests.get(
-            self.BASE_URL,
-            params={
-                "q": f'"{ticker}" OR "{company_name or ticker}" stock',
-                "from": start.date().isoformat(),
-                "to": end.date().isoformat(),
-                "language": "en",
-                "sortBy": "publishedAt",
-                "pageSize": 100,
-                "apiKey": self.api_key,
-            },
-            timeout=12,
-        )
-        response.raise_for_status()
-        return ProviderPayload(source="newsapi_news", records=response.json().get("articles", []))
+        try:
+            response = requests.get(
+                self.BASE_URL,
+                params={
+                    "q": f'"{ticker}" OR "{company_name or ticker}" stock',
+                    "from": start.date().isoformat(),
+                    "to": end.date().isoformat(),
+                    "language": "en",
+                    "sortBy": "publishedAt",
+                    "pageSize": 100,
+                    "apiKey": self.api_key,
+                },
+                timeout=12,
+            )
+            response.raise_for_status()
+            return ProviderPayload(source="newsapi_news", records=response.json().get("articles", []))
+        except requests.RequestException:
+            # NewsAPI free plans often reject server-side or deep-history requests.
+            return ProviderPayload(source="newsapi_news", records=[])
 
 
 class YFinanceClient:

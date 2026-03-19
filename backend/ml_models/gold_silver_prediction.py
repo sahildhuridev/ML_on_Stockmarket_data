@@ -4,6 +4,25 @@ import yfinance as yf
 from sklearn.linear_model import LinearRegression
 import numpy as np
 
+
+def _extract_price_frame(data):
+    if isinstance(data.columns, pd.MultiIndex):
+        top_level = data.columns.get_level_values(0)
+        if 'Adj Close' in top_level:
+            prices = data.xs('Adj Close', axis=1, level=0)
+        elif 'Close' in top_level:
+            prices = data.xs('Close', axis=1, level=0)
+        else:
+            raise ValueError("Close prices are unavailable from Yahoo Finance.")
+    else:
+        if 'Adj Close' in data.columns:
+            prices = data[['Adj Close']].rename(columns={'Adj Close': 'GLD'})
+        elif 'Close' in data.columns:
+            prices = data[['Close']].rename(columns={'Close': 'GLD'})
+        else:
+            raise ValueError("Close prices are unavailable from Yahoo Finance.")
+    return prices
+
 def analyze_gold_silver_multivariate(interval='1y'):
     """
     Fetches, predicts, and returns Gold & Silver data for the given interval.
@@ -15,11 +34,8 @@ def analyze_gold_silver_multivariate(interval='1y'):
     # We will fetch enough data to establish long-term lags, but for '1d', we might just need recent history
     data = yf.download(["GLD", "SLV"], period="max")
     
-    if 'Adj Close' in data.columns:
-        prices = data['Adj Close']
-    else:
-        prices = data['Close']
-    
+    prices = _extract_price_frame(data)
+
     prices = prices.dropna()
     
     # Determine resampling and prediction length based on interval
