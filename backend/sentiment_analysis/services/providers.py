@@ -1,12 +1,16 @@
 from __future__ import annotations
 
 import os
+import logging
 from dataclasses import dataclass
 from datetime import timedelta
 
 import requests
 import yfinance as yf
 from django.utils import timezone
+
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -24,13 +28,17 @@ class FinnhubClient:
     def _get(self, path: str, params: dict) -> dict:
         if not self.api_key:
             return {}
-        response = requests.get(
-            f"{self.BASE_URL}/{path}",
-            params={**params, "token": self.api_key},
-            timeout=12,
-        )
-        response.raise_for_status()
-        return response.json()
+        try:
+            response = requests.get(
+                f"{self.BASE_URL}/{path}",
+                params={**params, "token": self.api_key},
+                timeout=12,
+            )
+            response.raise_for_status()
+            return response.json()
+        except requests.RequestException as exc:
+            logger.warning("Finnhub request failed for %s with params %s: %s", path, params, exc)
+            return {}
 
     def fetch_company_news(self, ticker: str, days: int) -> ProviderPayload:
         end = timezone.now().date()
