@@ -311,7 +311,10 @@ class SentimentPipeline:
         overall_score = float(news_df["score_0_10"].mean()) if not news_df.empty else 5.0
 
         daily = news_df.groupby("date").agg(avg_score=("score_0_10", "mean"), article_count=("external_id", "count")).reset_index().sort_values("date")
+        daily = daily.where(pd.notnull(daily), None)
+
         weekly = news_df.groupby("week").agg(avg_score=("score_0_10", "mean"), article_count=("external_id", "count")).reset_index().sort_values("week")
+        weekly = weekly.where(pd.notnull(weekly), None)
 
         correlation_value = 0.0
         correlation_direction = "flat"
@@ -339,7 +342,11 @@ class SentimentPipeline:
                     words[token] += 1
 
         distribution = [{"label": label, "value": count, "percentage": round((count / len(gold_rows)) * 100, 2)} for label, count in label_counts.items()]
-        news_feed = news_df.sort_values("published_at", ascending=False)[["title", "source", "published_at", "label", "confidence", "score_0_10", "url"]].head(20).fillna("").to_dict(orient="records")
+        
+        # Ensure news_feed has serializable timestamps
+        feed_df = news_df.sort_values("published_at", ascending=False)[["title", "source", "published_at", "label", "confidence", "score_0_10", "url"]].head(20).copy()
+        feed_df["published_at"] = feed_df["published_at"].astype(str).replace({"NaT": "", "nan": ""})
+        news_feed = feed_df.fillna("").to_dict(orient="records")
 
         return {
             "summary": {

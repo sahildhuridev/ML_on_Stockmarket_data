@@ -6,3 +6,4 @@ backend/sahil_venv/
 /node_modules
 # __pycache__/
 # *.pyc
+/backend/.env
